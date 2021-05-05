@@ -1,0 +1,14 @@
+domain: t7.io
+layout: ansible.sdk.operatorframework.io/v1
+projectName: flightdeck-operator
+resources:
+- group: flightdeck
+  kind: MySQLCluster
+  version: v1
+- group: flightdeck
+  kind: MySQLDatabase
+  version: v1
+- group: flightdeck
+  kind: MySQLUser
+  version: v1
+version: 3-alpha

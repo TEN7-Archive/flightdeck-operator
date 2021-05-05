@@ -1,0 +1,8 @@
+apiVersion: flightdeck.t7.io/v1
+kind: MySQLCluster
+metadata:
+  name: mysqlcluster-sample
+spec:
+  mysql_admin_secret: mysql-admin
+  mysql_readers_secret: mysql-reader
+  size: "20Gi"

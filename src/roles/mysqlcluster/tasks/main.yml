@@ -1,0 +1,117 @@
+---
+- name: Create mysql writer configmap
+  k8s:
+    definition: |
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: {{ ansible_operator_meta.name }}-config
+      data:
+        flight-deck-db.yml: |
+          mysql_root_password_file: "/config/mysql-admin/root-pass.txt"
+          mysql_users:
+            - name: "reader"
+              host: "%"
+              passwordFile: "/config/mysql-reader/db-pass.txt"
+              priv: "*.*:REPLICATION SLAVE"
+    namespace: "{{ ansible_operator_meta.namespace }}"
+- name: Create mysql writer statefulset
+  k8s:
+    definition: |
+      ---
+      apiVersion: apps/v1
+      kind: StatefulSet
+      metadata:
+        name: {{ ansible_operator_meta.name }}-writer
+      spec:
+        selector:
+          matchLabels:
+            app: mysql
+        serviceName: {{ ansible_operator_meta.name }}-writer
+        replicas: 1
+        template:
+          metadata:
+            labels:
+              app: mysql
+          spec:
+      {% if (nodeSelector is defined) and (nodeSelector.key is defined) and (nodeSelector.value is defined) %}
+            nodeSelector:
+              {{ nodeSelector.key }}: {{ nodeSelector.value }}
+      {% endif %}
+            initContainers:
+              # The PVC is owned by root by default. This means that a non-root container
+              # cannot create directories. So, we change the ownership to the UID/GID of
+              # the account under which the database container runs.
+              - name: "fix-pvc-permissions"
+                image: "alpine"
+                command:
+                  - "sh"
+                  - "-c"
+                  - "chown -R 1000:1000 /var/lib/mysql"
+                volumeMounts:
+                  - mountPath: /var/lib/mysql
+                    name: vol-mysql
+                    subPath: dbdata
+            containers:
+              - name: "db"
+                image: {{ image | default('ten7/flight-deck-db:10.3') }}
+                imagePullPolicy: Always
+                ports:
+                  - containerPort: 3306
+                    name: mysql
+                    protocol: TCP
+                volumeMounts:
+                  - mountPath: /var/lib/mysql
+                    name: vol-mysql
+                    subPath: dbdata
+                  - name: "vol-secret-mysql-admin"
+                    mountPath: "/config/mysql-admin"
+                  - name: vol-secret-mysql-reader
+                    mountPath: /config/mysql-reader
+                  - name: "vol-config-flight-deck-db"
+                    mountPath: "/config/mysql"
+            volumes:
+              - name: vol-mysql
+                persistentVolumeClaim:
+                  claimName: mysql
+              - name: vol-secret-mysql-admin
+                secret:
+                  secretName: {{ mysql_admin_secret }}
+              - name: vol-secret-mysql-reader
+                secret:
+                  secretName: {{ mysql_readers_secret }}
+              - name: vol-config-flight-deck-db
+                configMap:
+                  name: {{ ansible_operator_meta.name }}-config
+        volumeClaimTemplates:
+          - metadata:
+              name: vol-mysql
+            spec:
+              accessModes:
+                - {{ access_mode | default('ReadWriteOnce') }}
+      {% if storage_class is defined %}
+              storageClassName: "{{ storage_class }}"
+      {% endif %}
+              resources:
+                requests:
+                  storage: {{ size | default('10Gi') }}
+    namespace: "{{ ansible_operator_meta.namespace }}"
+- name: Create mysql writer service
+  k8s:
+    definition: |
+      ---
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: {{ ansible_operator_meta.name }}-writer
+      spec:
+        clusterIP: None
+        ports:
+          - name: mysql
+            port: 3306
+            protocol: TCP
+        selector:
+          app: mysql
+    namespace: "{{ ansible_operator_meta.namespace }}"
+
+
