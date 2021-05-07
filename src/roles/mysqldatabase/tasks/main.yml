@@ -4,10 +4,14 @@
     cluster: "{{ lookup('k8s', api_version='flightdeck.t7.io/v1', kind='MySQLCluster', namespace=_cluster_namespace, resource_name=cluster.name) }}"
   vars:
     _cluster_namespace: "{{ cluster.namespace | default(ansible_operator_meta.namespace) }}"
-- fail:
-    msg: "Could not find requested MySQLCluster {{ cluster.name }}"
-  when:
-    - "(cluster | default([])) | length < 1"
+# - fail:
+#     msg: "Could not find requested MySQLCluster {{ cluster.name }}"
+#   when:
+#     - "(cluster | default([])) | length < 1"
+
+- debug: var=cluster
+- debug: var=cluster.spec
+
 - fail:
     msg: "Could not get the mysql_admin_secret from MySQLCluster defintion."
   when:
