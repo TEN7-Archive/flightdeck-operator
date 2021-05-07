@@ -1,2 +1,42 @@
 ---
-# tasks file for MySQLDatabase
+- name: Fetch the MySQLCluster definition
+  set_fact:
+    cluster: "{{ lookup('k8s', api_version='flightdeck.t7.io/v1', kind='MySQLCluster', namespace=_cluster_namespace, resource_name=cluster.name) }}"
+  vars:
+    _cluster_namespace: "{{ cluster.namespace | default(ansible_operator_meta.namespace) }}"
+- fail:
+    msg: "Could not find requested MySQLCluster {{ cluster.name }}"
+  when:
+    - "(cluster | default([])) | length < 1"
+- fail:
+    msg: "Could not get the mysql_admin_secret from MySQLCluster defintion."
+  when:
+    - "(cluster.spec.mysql_admin_secret | default('')) == ''"
+
+- debug: var=cluster.spec.mysql_admin_secret
+- debug: var=cluster.metadata.namespace
+
+- name: Fetch the admin secret
+  set_fact:
+    mysql_admin_secret: "{{ lookup('k8s', api_version='v1', kind='secret', namespace=cluster.metadata.namespace, resource_name=cluster.spec.mysql_admin_secret) }}"
+
+- fail:
+    msg: "Could not get password from secret: {{ mysql_admin_secret }}"
+  when:
+    - "(mysql_admin_secret.data['root-pass.txt'] | default('')) == ''"
+- debug: var=mysql_admin_secret
+
+- name: Get the password from the secret
+  set_fact:
+    mysql_admin_password: "{{ mysql_admin_secret.data['root-pass.txt'] | b64decode }}"
+- debug: var=mysql_admin_password
+
+- name: Ensure the MySQL database
+  mysql_db:
+    name: "{{ db_name | default(ansible_operator_meta.name) }}"
+    collation: "{{ collation | default('utf8_general_ci') }}"
+    encoding: "{{ encoding | default('utf8') }}"
+    state: "{{ state | default('present') }}"
+    login_user: "root"
+    login_password: "{{ mysql_admin_password }}"
+    login_host: "{{ cluster.name }}.{{ cluster.metadata.namespace }}.svc.cluster.local"
