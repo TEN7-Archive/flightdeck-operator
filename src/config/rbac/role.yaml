@@ -1,0 +1,93 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: manager-role
+rules:
+  ##
+  ## Base operator rules
+  ##
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+      - configmaps
+      - services
+      - pods
+      - pods/exec
+      - pods/log
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+      - daemonsets
+      - replicasets
+      - statefulsets
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  ##
+  ## Rules for flightdeck.t7.io/v1, Kind: MySQLCluster
+  ##
+  - apiGroups:
+      - flightdeck.t7.io
+    resources:
+      - mysqlclusters
+      - mysqlclusters/status
+      - mysqlclusters/finalizers
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  ##
+  ## Rules for flightdeck.t7.io/v1, Kind: MySQLDatabase
+  ##
+  - apiGroups:
+      - flightdeck.t7.io
+    resources:
+      - mysqldatabases
+      - mysqldatabases/status
+      - mysqldatabases/finalizers
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  ##
+  ## Rules for flightdeck.t7.io/v1, Kind: MySQLUser
+  ##
+  - apiGroups:
+      - flightdeck.t7.io
+    resources:
+      - mysqlusers
+      - mysqlusers/status
+      - mysqlusers/finalizers
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+# +kubebuilder:scaffold:rules
