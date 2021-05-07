@@ -1,6 +1,0 @@
-apiVersion: flightdeck.t7.io/v1
-kind: MySQLDatabase
-metadata:
-  name: mysqldatabase-sample
-spec:
-  foo: bar

@@ -1,6 +1,0 @@
-apiVersion: flightdeck.t7.io/v1
-kind: MySQLUser
-metadata:
-  name: mysqluser-sample
-spec:
-  foo: bar
