@@ -1,2 +1,5 @@
 ---
-# handlers file for MySQLUser
+- name: delete user readers secret tempfile
+  file:
+    path: _mysql_user_secret_passfile.path
+    state: absent

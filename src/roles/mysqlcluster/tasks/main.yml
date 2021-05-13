@@ -1,4 +1,96 @@
 ---
+- name: Get the mysql root secret name
+  set_fact:
+    _mysql_root_secret_name: "{{ mysql_root_secret | default(ansible_operator_meta.name + '-root') }}"
+- name: Check if the mysql operator secret already exists
+  set_fact:
+    _mysql_root_secret_def: "{{ lookup('k8s', kind='secret', namespace=ansible_operator_meta.namespace, resource_name=_mysql_root_secret_name) }}"
+
+- name: Create tempfile for the password
+  tempfile:
+    state: file
+    prefix: "mysql_root_password"
+  register: _mysql_root_secret_passfile
+  notify:
+    - "delete mysql root secret tempfile"
+  when:
+    - "(_mysql_root_secret_def | length) < 1"
+- name: Create mysql root secret
+  k8s:
+    definition: |
+      apiVersion: v1
+      data:
+        root-pass.txt: "{{ lookup('password', '_mysql_root_secret_passfile.path chars=ascii_letters,digits,hexdigits,punctuation') | b64encode }}"
+      kind: Secret
+      metadata:
+        name: {{ _mysql_root_secret_name }}
+      type: Opaque
+    namespace: "{{ ansible_operator_meta.namespace }}"
+  when:
+    - "(_mysql_root_secret_def | length) < 1"
+
+- name: Get the mysql operator secret name
+  set_fact:
+    _mysql_operator_secret_name: "{{ mysql_operator_secret | default(ansible_operator_meta.name + '-operator') }}"
+- name: Check if the mysql operator secret already exists
+  set_fact:
+    _mysql_operator_secret_def: "{{ lookup('k8s', kind='secret', namespace=ansible_operator_meta.namespace, resource_name=_mysql_operator_secret_name) }}"
+
+- name: Create tempfile for the password
+  tempfile:
+    state: file
+    prefix: "mysql_operator_secret"
+  register: _mysql_operator_secret_passfile
+  notify:
+    - "delete mysql operator secret tempfile"
+  when:
+    - "(_mysql_operator_secret_def | length) < 1"
+- name: Create mysql operator secret
+  k8s:
+    definition: |
+      apiVersion: v1
+      data:
+        db-user.txt: "{{ 'operator' | b64encode }}"
+        db-pass.txt: "{{ lookup('password', '_mysql_operator_secret_passfile.path chars=ascii_letters,digits,hexdigits,punctuation') | b64encode }}"
+      kind: Secret
+      metadata:
+        name: {{ _mysql_operator_secret_name }}
+      type: Opaque
+    namespace: "{{ ansible_operator_meta.namespace }}"
+  when:
+    - "(_mysql_operator_secret_def | length) < 1"
+
+- name: Get the mysql readers secret name
+  set_fact:
+    _mysql_readers_secret_name: "{{ mysql_readers_secret | default(ansible_operator_meta.name + '-user') }}"
+- name: Check if the mysql readers secret already exists
+  set_fact:
+    _mysql_readers_secret_def: "{{ lookup('k8s', kind='secret', namespace=ansible_operator_meta.namespace, resource_name=_mysql_readers_secret_name) }}"
+
+- name: Create tempfile for the password
+  tempfile:
+    state: file
+    prefix: "mysql_readers_secret"
+  register: _mysql_readers_secret_passfile
+  notify:
+    - "delete mysql readers secret tempfile"
+  when:
+    - "(_mysql_readers_secret_def | length) < 1"
+- name: Create mysql readers secret
+  k8s:
+    definition: |
+      apiVersion: v1
+      data:
+        db-user.txt: "{{ 'reader' | b64encode }}"
+        db-pass.txt: "{{ lookup('password', '_mysql_readers_secret_passfile.path chars=ascii_letters,digits,hexdigits,punctuation') | b64encode }}"
+      kind: Secret
+      metadata:
+        name: {{ _mysql_readers_secret_name }}
+      type: Opaque
+    namespace: "{{ ansible_operator_meta.namespace }}"
+  when:
+    - "(_mysql_readers_secret_def | length) < 1"
+
 - name: Create mysql writer configmap
   k8s:
     definition: |
@@ -8,13 +100,33 @@
         name: {{ ansible_operator_meta.name }}-config
       data:
         flight-deck-db.yml: |
-          mysql_root_password_file: "/config/mysql-admin/root-pass.txt"
+          mysql_root_password_file: "/config/mysql-root/root-pass.txt"
+          mysql_allow_remote_root: no
+          mysql_databases: []
           mysql_users:
-            - name: "reader"
+            - name: "{{ _mysql_operator_user }}"
+              host: "%"
+              passwordFile: "/config/operator/db-pass.txt"
+              priv: "*.*:ALL,GRANT"
+            - name: "{{ _mysql_reader_user }}"
               host: "%"
               passwordFile: "/config/mysql-reader/db-pass.txt"
               priv: "*.*:REPLICATION SLAVE"
     namespace: "{{ ansible_operator_meta.namespace }}"
+  vars:
+    _mysql_operator_user: "\
+      {% if _mysql_operator_secret_def.data['db-user.txt'] is not defined %}\
+      operator\
+      {% else %}\
+      {{ _mysql_operator_secret_def.data['db-user.txt'] | b64decode }}\
+      {% endif %}"
+    _mysql_reader_user: "\
+      {% if _mysql_readers_secret_def.data['db-user.txt'] is not defined %}\
+      reader\
+      {% else %}\
+      {{ _mysql_readers_secret_def.data['db-user.txt'] | b64decode }}\
+      {% endif %}"
+
 - name: Create mysql writer statefulset
   k8s:
     definition: |
@@ -54,7 +166,7 @@
                     subPath: dbdata
             containers:
               - name: "db"
-                image: {{ image | default('ten7/flight-deck-db:10.3') }}
+                image: {{ image | default('ten7/flight-deck-db:10.4') }}
                 imagePullPolicy: Always
                 ports:
                   - containerPort: 3306
@@ -64,8 +176,10 @@
                   - mountPath: /var/lib/mysql
                     name: vol-mysql
                     subPath: dbdata
-                  - name: "vol-secret-mysql-admin"
-                    mountPath: "/config/mysql-admin"
+                  - name: "vol-secret-mysql-root"
+                    mountPath: "/config/mysql-root"
+                  - name: vol-secret-operator
+                    mountPath: /config/operator
                   - name: vol-secret-mysql-reader
                     mountPath: /config/mysql-reader
                   - name: "vol-config-flight-deck-db"
@@ -74,12 +188,15 @@
               - name: vol-mysql
                 persistentVolumeClaim:
                   claimName: mysql
-              - name: vol-secret-mysql-admin
+              - name: vol-secret-mysql-root
                 secret:
-                  secretName: {{ mysql_admin_secret }}
+                  secretName: {{ _mysql_root_secret_name }}
+              - name: vol-secret-operator
+                secret:
+                  secretName: {{ _mysql_operator_secret_name }}
               - name: vol-secret-mysql-reader
                 secret:
-                  secretName: {{ mysql_readers_secret }}
+                  secretName: {{ _mysql_readers_secret_name }}
               - name: vol-config-flight-deck-db
                 configMap:
                   name: {{ ansible_operator_meta.name }}-config
@@ -113,5 +230,3 @@
         selector:
           app: mysql
     namespace: "{{ ansible_operator_meta.namespace }}"
-
-

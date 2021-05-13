@@ -8,8 +8,16 @@
   group: flightdeck.t7.io
   kind: MySQLDatabase
   role: mysqldatabase
+  # finalizer:
+  #   name: flightdeck.t7.io/db-finalizer
+  #   vars:
+  #     state: absent
 - version: v1
   group: flightdeck.t7.io
   kind: MySQLUser
   role: mysqluser
+  # finalizer:
+  #   name: flightdeck.t7.io/user-finalizer
+  #   vars:
+  #     state: absent
 # +kubebuilder:scaffold:watch
