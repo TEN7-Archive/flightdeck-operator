@@ -52,7 +52,7 @@
       {{ _mysql_user_secret_def.data['db-pass.txt'] | b64decode }}\
       {% endif %}"
 
-- name: Create mysql readers secret
+- name: Create mysql readers secret if not specified
   k8s:
     definition: |
       apiVersion: v1
@@ -66,7 +66,7 @@
   when:
     - "(_mysql_user_secret_def | length) < 1"
 
-- name: Ensure the MySQL user
+- name: Create the MySQL user
   mysql_user:
     name: "{{ username | default(ansible_operator_meta.name) }}"
     host: "{{ host | default('%') }}"
@@ -75,7 +75,7 @@
            {{ _item.database }}.{{ _item.table | default('*') }}:{{ _item.grant | default('USAGE') }}\
            {% if not loop.last %},{% endif %}\
            {% endfor %}"
-    state: "{{ state | default('present') }}"
+    state: present
     login_user: "{{ _mysql_operator_user }}"
     login_password: "{{ _mysql_operator_password }}"
     login_host: "{{ _cluster_def.metadata.name }}-writer.{{ _cluster_def.metadata.namespace }}.svc.cluster.local"

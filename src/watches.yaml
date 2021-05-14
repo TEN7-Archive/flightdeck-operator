@@ -4,20 +4,21 @@
   group: flightdeck.t7.io
   kind: MySQLCluster
   role: mysqlcluster
+  finalizer:
+    name: flightdeck.t7.io/cluster-finalizer
+    role: mysqlcluster_finalizer
 - version: v1
   group: flightdeck.t7.io
   kind: MySQLDatabase
   role: mysqldatabase
-  # finalizer:
-  #   name: flightdeck.t7.io/db-finalizer
-  #   vars:
-  #     state: absent
+  finalizer:
+    name: flightdeck.t7.io/db-finalizer
+    role: mysqldatabase_finalizer
 - version: v1
   group: flightdeck.t7.io
   kind: MySQLUser
   role: mysqluser
-  # finalizer:
-  #   name: flightdeck.t7.io/user-finalizer
-  #   vars:
-  #     state: absent
+  finalizer:
+    name: flightdeck.t7.io/user-finalizer
+    role: mysqluser_finalizer
 # +kubebuilder:scaffold:watch

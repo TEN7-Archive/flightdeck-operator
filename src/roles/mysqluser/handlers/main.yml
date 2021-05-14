@@ -1,5 +1,5 @@
 ---
-- name: delete user readers secret tempfile
+- name: delete mysql user secret tempfile
   file:
     path: _mysql_user_secret_passfile.path
     state: absent

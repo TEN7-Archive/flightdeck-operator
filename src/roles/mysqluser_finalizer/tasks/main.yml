@@ -21,17 +21,26 @@
   when:
     - "(_mysql_operator_secret_def.data['db-pass.txt'] | default('')) == ''"
 
-- name: Get the operator login from the secret
+- name: Get the operator password from the secret
   set_fact:
     _mysql_operator_user: "{{ _mysql_operator_secret_def.data['db-user.txt'] | b64decode }}"
     _mysql_operator_password: "{{ _mysql_operator_secret_def.data['db-pass.txt'] | b64decode }}"
 
-- name: Create the MySQL database
-  mysql_db:
-    name: "{{ db_name | default(ansible_operator_meta.name) }}"
-    collation: "{{ collation | default('utf8_general_ci') }}"
-    encoding: "{{ encoding | default('utf8') }}"
-    state: present
+- name: Delete the MySQL user
+  mysql_user:
+    name: "{{ username | default(ansible_operator_meta.name) }}"
+    host: "{{ host | default('%') }}"
+    state: absent
     login_user: "{{ _mysql_operator_user }}"
     login_password: "{{ _mysql_operator_password }}"
     login_host: "{{ _cluster_def.metadata.name }}-writer.{{ _cluster_def.metadata.namespace }}.svc.cluster.local"
+
+- name: Delete the mysql user secret if operator created
+  k8s:
+    api_version: "v1"
+    kind: "Secret"
+    name: "{{ ansible_operator_meta.name + '-user' }}"
+    namespace: "{{ ansible_operator_meta.namespace }}"
+    state: absent
+  when:
+    - "(password_secret | default('')) == ''"

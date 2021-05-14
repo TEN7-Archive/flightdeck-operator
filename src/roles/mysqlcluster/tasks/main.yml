@@ -139,12 +139,16 @@
         selector:
           matchLabels:
             app: mysql
+            mysql-cluster: {{ ansible_operator_meta.name }}
+            mysql-role: writer
         serviceName: {{ ansible_operator_meta.name }}-writer
         replicas: 1
         template:
           metadata:
             labels:
               app: mysql
+              mysql-cluster: {{ ansible_operator_meta.name }}
+              mysql-role: writer
           spec:
       {% if (nodeSelector is defined) and (nodeSelector.key is defined) and (nodeSelector.value is defined) %}
             nodeSelector:
@@ -229,4 +233,6 @@
             protocol: TCP
         selector:
           app: mysql
+          mysql-cluster: {{ ansible_operator_meta.name }}
+          mysql-role: writer
     namespace: "{{ ansible_operator_meta.namespace }}"
