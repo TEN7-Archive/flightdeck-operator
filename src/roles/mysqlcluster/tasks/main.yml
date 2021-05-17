@@ -138,9 +138,9 @@
       spec:
         selector:
           matchLabels:
-            app: mysql
-            mysql-cluster: {{ ansible_operator_meta.name }}
-            mysql-role: writer
+            app: "mysql"
+            mysql-cluster: "{{ ansible_operator_meta.name }}"
+            mysql-role: "writer"
         serviceName: {{ ansible_operator_meta.name }}-writer
         replicas: 1
         template:
@@ -232,7 +232,123 @@
             port: 3306
             protocol: TCP
         selector:
-          app: mysql
-          mysql-cluster: {{ ansible_operator_meta.name }}
-          mysql-role: writer
+          app: "mysql"
+          mysql-cluster: "{{ ansible_operator_meta.name }}"
+          mysql-role: "writer"
     namespace: "{{ ansible_operator_meta.namespace }}"
+
+- name: Create the mysql reader statefulsets if replication is configured
+  k8s:
+    definition: |
+      ---
+      apiVersion: apps/v1
+      kind: StatefulSet
+      metadata:
+        name: {{ ansible_operator_meta.name }}-reader-{{ item }}
+      spec:
+        selector:
+          matchLabels:
+            app: mysql
+            mysql-cluster: "{{ ansible_operator_meta.name }}"
+            mysql-role: "reader"
+            reader-delta: "{{ item }}"
+        serviceName: {{ ansible_operator_meta.name }}-reader-{{ item }}
+        replicas: 1
+        template:
+          metadata:
+            labels:
+              app: mysql
+              mysql-cluster: "{{ ansible_operator_meta.name }}"
+              mysql-role: "reader"
+              reader-delta: "{{ item }}"
+          spec:
+      {% if (nodeSelector is defined) and (nodeSelector.key is defined) and (nodeSelector.value is defined) %}
+            nodeSelector:
+              {{ nodeSelector.key }}: {{ nodeSelector.value }}
+      {% endif %}
+            initContainers:
+              # The PVC is owned by root by default. This means that a non-root container
+              # cannot create directories. So, we change the ownership to the UID/GID of
+              # the account under which the database container runs.
+              - name: "fix-pvc-permissions"
+                image: "alpine"
+                command:
+                  - "sh"
+                  - "-c"
+                  - "chown -R 1000:1000 /var/lib/mysql"
+                volumeMounts:
+                  - mountPath: /var/lib/mysql
+                    name: vol-mysql
+                    subPath: dbdata
+            containers:
+              - name: "db"
+                image: {{ image | default('ten7/flight-deck-db:10.4') }}
+                imagePullPolicy: Always
+                ports:
+                  - containerPort: 3306
+                    name: mysql
+                    protocol: TCP
+                volumeMounts:
+                  - mountPath: /var/lib/mysql
+                    name: vol-mysql
+                    subPath: dbdata
+                  - name: "vol-secret-mysql-root"
+                    mountPath: "/config/mysql-root"
+                  - name: vol-secret-operator
+                    mountPath: /config/operator
+                  - name: vol-secret-mysql-reader
+                    mountPath: /config/mysql-reader
+                  - name: "vol-config-flight-deck-db"
+                    mountPath: "/config/mysql"
+            volumes:
+              - name: vol-mysql
+                persistentVolumeClaim:
+                  claimName: mysql
+              - name: vol-secret-mysql-root
+                secret:
+                  secretName: {{ _mysql_root_secret_name }}
+              - name: vol-secret-operator
+                secret:
+                  secretName: {{ _mysql_operator_secret_name }}
+              - name: vol-secret-mysql-reader
+                secret:
+                  secretName: {{ _mysql_readers_secret_name }}
+              - name: vol-config-flight-deck-db
+                configMap:
+                  name: {{ ansible_operator_meta.name }}-config
+        volumeClaimTemplates:
+          - metadata:
+              name: vol-mysql
+            spec:
+              accessModes:
+                - {{ access_mode | default('ReadWriteOnce') }}
+      {% if storage_class is defined %}
+              storageClassName: "{{ storage_class }}"
+      {% endif %}
+              resources:
+                requests:
+                  storage: {{ size | default('10Gi') }}
+    namespace: "{{ ansible_operator_meta.namespace }}"
+  with_sequence: start=1 count={{ (reader_count | default(0)) | int }}
+
+- name: Create mysql reader services if replication is configured
+  k8s:
+    definition: |
+      ---
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: {{ ansible_operator_meta.name }}-reader-{{ item }}
+      spec:
+        clusterIP: None
+        ports:
+          - name: mysql
+            port: 3306
+            protocol: TCP
+        selector:
+          app: mysql
+          mysql-cluster: "{{ ansible_operator_meta.name }}"
+          mysql-role: "reader"
+          reader-delta: "{{ item }}"
+    namespace: "{{ ansible_operator_meta.namespace }}"
+  with_sequence: start=1 count={{ (reader_count | default(0)) | int }}
