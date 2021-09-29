@@ -31,7 +31,7 @@ uninstall: kustomize
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 deploy: kustomize
 	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
-	$(KUSTOMIZE) build config/default	| kubectl apply -f -
+	$(KUSTOMIZE) build config/default | kubectl apply -f -
 
 # Undeploy controller in the configured Kubernetes cluster in ~/.kube/config
 undeploy: kustomize

@@ -9,9 +9,13 @@
   when:
     - "(_cluster_def | default([])) | length < 1"
 
+- name: Generate the cluster name
+  set_fact:
+    _mysql_cluster_full_name: "{{ _cluster_def.spec.fullname_override | default('mysqlcluster-' + cluster.name) }}"
+
 - name: Get the mysql operator secret name
   set_fact:
-    _mysql_operator_secret_name: "{{ _cluster_def.spec.mysql_operator_secret | default(_cluster_def.metadata.name + '-operator') }}"
+    _mysql_operator_secret_name: "{{ _cluster_def.spec.mysql_operator_secret | default(_mysql_cluster_full_name + '-operator') }}"
 
 - name: Fetch the operator secret
   set_fact:
@@ -33,13 +37,13 @@
     state: absent
     login_user: "{{ _mysql_operator_user }}"
     login_password: "{{ _mysql_operator_password }}"
-    login_host: "{{ _cluster_def.metadata.name }}-writer.{{ _cluster_def.metadata.namespace }}.svc.cluster.local"
+    login_host: "{{_mysql_cluster_full_name }}-0.{{ _mysql_cluster_full_name }}.{{ _cluster_def.metadata.namespace }}.svc.cluster.local"
 
 - name: Delete the mysql user secret if operator created
   k8s:
     api_version: "v1"
     kind: "Secret"
-    name: "{{ ansible_operator_meta.name + '-user' }}"
+    name: "{{ 'mysqluser-' + cluster.name + ansible_operator_meta.name }}"
     namespace: "{{ ansible_operator_meta.namespace }}"
     state: absent
   when:

@@ -1,0 +1,22 @@
+---
+- name: Create the mysql service
+  k8s:
+    definition: |
+      ---
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: {{ _mysql_cluster_full_name }}
+        labels:
+          app.kubernetes.io/managed-by: "flightdeck-operator"
+          app.kubernetes.io/created-by: "controller-manager"
+      spec:
+        clusterIP: None
+        ports:
+          - name: mysql
+            port: 3306
+            protocol: TCP
+        selector:
+          app.kubernetes.io/name: "mysql"
+          mysql-cluster: "{{ _mysql_cluster_full_name }}"
+    namespace: "{{ ansible_operator_meta.namespace }}"

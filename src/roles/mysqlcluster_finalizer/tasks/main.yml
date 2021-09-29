@@ -1,25 +1,29 @@
 ---
-- name: Delete the mysql writer service
+- name: Generate the cluster name
+  set_fact:
+    _mysql_cluster_full_name: "{{ fullname_override | default('mysqlcluster-' + ansible_operator_meta.name) }}"
+
+- name: Delete the mysql service
   k8s:
     api_version: "v1"
     kind: "Service"
-    name: "{{ ansible_operator_meta.name }}-writer"
+    name: "{{ _mysql_cluster_full_name }}"
     namespace: "{{ ansible_operator_meta.namespace }}"
     state: absent
 
-- name: Delete the mysql writer statefulset
+- name: Delete the mysql statefulset
   k8s:
     api_version: "apps/v1"
     kind: "StatefulSet"
-    name: "{{ ansible_operator_meta.name }}-writer"
+    name: "{{ _mysql_cluster_full_name }}"
     namespace: "{{ ansible_operator_meta.namespace }}"
     state: absent
 
-- name: Delete the mysql writer configmap
+- name: Delete the mysql configmap
   k8s:
     api_version: "v1"
     kind: "ConfigMap"
-    name: "{{ ansible_operator_meta.name }}-config"
+    name: "{{ _mysql_cluster_full_name }}-config"
     namespace: "{{ ansible_operator_meta.namespace }}"
     state: absent
 
@@ -27,7 +31,7 @@
   k8s:
     api_version: "v1"
     kind: "Secret"
-    name: "{{ ansible_operator_meta.name + '-user' }}"
+    name: "{{ _mysql_cluster_full_name + '-user' }}"
     namespace: "{{ ansible_operator_meta.namespace }}"
     state: absent
   when:
@@ -37,7 +41,7 @@
   k8s:
     api_version: "v1"
     kind: "Secret"
-    name: "{{ ansible_operator_meta.name + '-operator' }}"
+    name: "{{ _mysql_cluster_full_name + '-operator' }}"
     namespace: "{{ ansible_operator_meta.namespace }}"
     state: absent
   when:
@@ -47,7 +51,7 @@
   k8s:
     api_version: "v1"
     kind: "Secret"
-    name: "{{ ansible_operator_meta.name + '-root' }}"
+    name: "{{ _mysql_cluster_full_name + '-root' }}"
     namespace: "{{ ansible_operator_meta.namespace }}"
     state: absent
   when:

@@ -1,0 +1,45 @@
+---
+- name: Create mysql configmap
+  k8s:
+    definition: |
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: {{ _mysql_cluster_full_name }}-config
+        labels:
+          app.kubernetes.io/managed-by: "flightdeck-operator"
+          app.kubernetes.io/created-by: "controller-manager"
+      data:
+        flight-deck-db.yml: |
+          flightdeck_db:
+            serverIdFromHostname: yes
+            binaryLogging:
+              status: yes
+              baseName: "{{ _mysql_cluster_full_name }}"
+              format: "mixed"
+          mysql_root_password_file: "/config/mysql-root/root-pass.txt"
+          mysql_allow_remote_root: no
+          mysql_databases: []
+          mysql_users:
+            - name: "{{ _mysql_operator_user }}"
+              host: "%"
+              passwordFile: "/config/operator/db-pass.txt"
+              priv: "*.*:ALL,GRANT"
+            - name: "{{ _mysql_reader_user }}"
+              host: "%"
+              passwordFile: "/config/mysql-reader/db-pass.txt"
+              priv: "*.*:REPLICATION SLAVE"
+    namespace: "{{ ansible_operator_meta.namespace }}"
+  vars:
+    _mysql_operator_user: "\
+      {% if _mysql_operator_secret_def.data['db-user.txt'] is not defined %}\
+      operator\
+      {% else %}\
+      {{ _mysql_operator_secret_def.data['db-user.txt'] | b64decode }}\
+      {% endif %}"
+    _mysql_reader_user: "\
+      {% if _mysql_readers_secret_def.data['db-user.txt'] is not defined %}\
+      reader\
+      {% else %}\
+      {{ _mysql_readers_secret_def.data['db-user.txt'] | b64decode }}\
+      {% endif %}"

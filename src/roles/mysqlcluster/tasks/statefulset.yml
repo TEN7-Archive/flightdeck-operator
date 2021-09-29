@@ -1,0 +1,116 @@
+---
+- name: Create mysql statefulset
+  k8s:
+    definition: |
+      ---
+      apiVersion: apps/v1
+      kind: StatefulSet
+      metadata:
+        name: {{ _mysql_cluster_full_name }}
+        labels:
+          app.kubernetes.io/managed-by: "flightdeck-operator"
+          app.kubernetes.io/created-by: "controller-manager"
+      spec:
+        selector:
+          matchLabels:
+            app.kubernetes.io/name: "mysql"
+            mysql-cluster: "{{ _mysql_cluster_full_name }}"
+        serviceName: {{ _mysql_cluster_full_name }}
+        replicas: {{ replicas | default(1) }}
+        template:
+          metadata:
+            labels:
+              app.kubernetes.io/name: "mysql"
+              mysql-cluster: {{ _mysql_cluster_full_name }}
+          spec:
+      {% if (node_selector is defined) and (node_selector.key is defined) and (node_selector.value is defined) %}
+            nodeSelector:
+              {{ node_selector.key }}: {{ node_selector.value }}
+      {% endif %}
+      {% if (_flightdeck_t7_io_mysqlcluster_spec is defined) and (_flightdeck_t7_io_mysqlcluster_spec.affinity is defined )%}
+            affinity:
+              {{ _flightdeck_t7_io_mysqlcluster_spec.affinity | to_nice_yaml(indent=2) | indent(8) }}
+      {% endif %}
+            initContainers:
+              # The PVC is owned by root by default. This means that a non-root container
+              # cannot create directories. So, we change the ownership to the UID/GID of
+              # the account under which the database container runs.
+              - name: "fix-pvc-permissions"
+                image: "alpine"
+                command:
+                  - "sh"
+                  - "-c"
+                  - "chown -R 1000:1000 /var/lib/mysql"
+                volumeMounts:
+                  - mountPath: /var/lib/mysql
+                    name: vol-mysql
+                    subPath: dbdata
+            containers:
+              - name: "db"
+                image: {{ image | default('ten7/flightdeck-db-10.4:develop') }}
+                imagePullPolicy: Always
+      {% if resources is defined %}
+                resources:
+                  {{ resources | to_nice_yaml(indent=2) | indent(12) }}
+      {% endif %}
+                ports:
+                  - containerPort: 3306
+                    name: mysql
+                    protocol: TCP
+                volumeMounts:
+                  - mountPath: /var/lib/mysql
+                    name: vol-mysql
+                    subPath: dbdata
+                  - name: "vol-secret-mysql-root"
+                    mountPath: "/config/mysql-root"
+                  - name: vol-secret-operator
+                    mountPath: /config/operator
+                  - name: vol-secret-mysql-reader
+                    mountPath: /config/mysql-reader
+                  - name: "vol-config-flight-deck-db"
+                    mountPath: "/config/mysql"
+            volumes:
+              - name: vol-mysql
+                persistentVolumeClaim:
+                  claimName: mysql
+              - name: vol-secret-mysql-root
+                secret:
+                  secretName: {{ _mysql_root_secret_name }}
+              - name: vol-secret-operator
+                secret:
+                  secretName: {{ _mysql_operator_secret_name }}
+              - name: vol-secret-mysql-reader
+                secret:
+                  secretName: {{ _mysql_readers_secret_name }}
+              - name: vol-config-flight-deck-db
+                configMap:
+                  name: {{ _mysql_cluster_full_name }}-config
+        volumeClaimTemplates:
+          - metadata:
+              name: vol-mysql
+            spec:
+              accessModes:
+                - {{ access_mode | default('ReadWriteOnce') }}
+      {% if storage_class is defined %}
+              storageClassName: "{{ storage_class }}"
+      {% endif %}
+              resources:
+                requests:
+                  storage: {{ size | default('10Gi') }}
+    namespace: "{{ ansible_operator_meta.namespace }}"
+    wait: true
+    wait_timeout: 120
+# The wait parameter above doesn't seem to work because StatefulSet.spec.status
+# doesn't have any conditions which Ansible requires. So we hack around it.
+- name: Wait for statefulset pods to be ready
+  k8s_info:
+    api_version: "apps/v1"
+    kind: statefulset
+    name: "{{ _mysql_cluster_full_name }}"
+    namespace: "{{ ansible_operator_meta.namespace }}"
+  register: _statefulset_info
+  until: (_statefulset_info.resources[0].status.readyReplicas | default(0)) == (replicas | default(1))
+  retries: 5
+  delay: 30
+
+# - debug: var=_statefulset_info.resources[0].status.readyReplicas
