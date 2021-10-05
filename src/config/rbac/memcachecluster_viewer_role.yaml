@@ -1,0 +1,20 @@
+# permissions for end users to view memcacheclusters.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: memcachecluster-viewer-role
+rules:
+- apiGroups:
+  - flightdeck.t7.io
+  resources:
+  - memcacheclusters
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - flightdeck.t7.io
+  resources:
+  - memcacheclusters/status
+  verbs:
+  - get

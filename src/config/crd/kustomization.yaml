@@ -5,4 +5,5 @@ resources:
 - bases/flightdeck.t7.io_mysqlclusters.yaml
 - bases/flightdeck.t7.io_mysqldatabases.yaml
 - bases/flightdeck.t7.io_mysqlusers.yaml
+- bases/flightdeck.t7.io_memcacheclusters.yaml
 # +kubebuilder:scaffold:crdkustomizeresource

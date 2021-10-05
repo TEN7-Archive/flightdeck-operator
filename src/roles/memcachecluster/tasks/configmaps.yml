@@ -1,0 +1,57 @@
+---
+- name: Create twemproxy configmap
+  k8s:
+    definition: |
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: {{ _memcache_cluster_full_name }}-proxy
+        labels:
+          app.kubernetes.io/managed-by: "flightdeck-operator"
+          app.kubernetes.io/created-by: "controller-manager"
+      data:
+        flightdeck-twemproxy.yml: |
+          flightdeck_twemproxy:
+      {% if flightdeck_debug | default(false) %}
+            flightdeck_debug: yes
+      {% endif %}
+            confFile: "/config/twemproxy/twemproxy.yml"
+            statsInterval: "30000"
+            mbufSize: "16384"
+            statsPort: "22222"
+        twemproxy.yml: |
+          default:
+            listen: 0.0.0.0:{{ proxy_port | default('11211') }}
+            hash: fnv1a_64
+            distribution: ketama
+            timeout: 400
+            backlog: 1024
+            preconnect: true
+            auto_eject_hosts: true
+            server_retry_timeout: 30000
+            server_failure_limit: 30
+            servers:
+      {% for i in range(replicas) %}
+              - {{ _memcache_cluster_full_name }}-cache-{{ i }}.{{ _memcache_cluster_full_name }}-cache:{{ cache_port | default('11211') }}:1
+      {% endfor %}
+    namespace: "{{ ansible_operator_meta.namespace }}"
+- name: Create memcache configmap
+  k8s:
+    definition: |
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: {{ _memcache_cluster_full_name }}-cache
+        labels:
+          app.kubernetes.io/managed-by: "flightdeck-operator"
+          app.kubernetes.io/created-by: "controller-manager"
+      data:
+        flightdeck-memcache.yml: |
+          flightdeck_memcache:
+      {% if flightdeck_debug | default(false) %}
+            flightdeck_debug: yes
+      {% endif %}
+            port: "{{ cache_port | default('11211') }}"
+            memory: "{{ memory | default('256') }}"
+            threads: "{{ threads | default('4') }}"
+    namespace: "{{ ansible_operator_meta.namespace }}"

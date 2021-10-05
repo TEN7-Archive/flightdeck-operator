@@ -1,0 +1,55 @@
+---
+- name: Create twemproxy daemonset
+  k8s:
+    definition: |
+      ---
+      apiVersion: apps/v1
+      kind: DaemonSet
+      metadata:
+        name: {{ _memcache_cluster_full_name }}-proxy
+        labels:
+          app.kubernetes.io/managed-by: "flightdeck-operator"
+          app.kubernetes.io/created-by: "controller-manager"
+      spec:
+        selector:
+          matchLabels:
+            app.kubernetes.io/name: "twemproxy"
+            memcache-cluster: "{{ _memcache_cluster_full_name }}"
+        serviceName: {{ _memcache_cluster_full_name }}
+        template:
+          metadata:
+            labels:
+              app.kubernetes.io/name: "twemproxy"
+              memcache-cluster: "{{ _memcache_cluster_full_name }}"
+          spec:
+            containers:
+              - name: "twemproxy"
+                image: {{ image | default('ten7/flightdeck-twemproxy-0.4') }}
+                imagePullPolicy: Always
+      {% if resources is defined %}
+                resources:
+                  {{ resources | to_nice_yaml(indent=2) | indent(12) }}
+      {% endif %}
+                env:
+      {% if flightdeck_debug | default(false) %}
+                  - name: ANSIBLE_VERBOSITY
+                    value: "4"
+      {% endif %}
+      {% if flightdeck_skip_entrypoint | default(false) %}
+                  - name: FLIGHTDECK_SKIP_ENTRYPOINT
+                    value: "1"
+      {% endif %}
+                ports:
+                  - containerPort: {{ proxy_port | default('11211') }}
+                    name: twemproxy
+                    protocol: TCP
+                volumeMounts:
+                  - name: "vol-config-flightdeck-twemproxy"
+                    mountPath: "/config/twemproxy"
+            volumes:
+              - name: vol-config-flightdeck-twemproxy
+                configMap:
+                  name: {{ _memcache_cluster_full_name }}-proxy
+    namespace: "{{ ansible_operator_meta.namespace }}"
+    wait: true
+    wait_timeout: 120

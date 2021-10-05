@@ -5,20 +5,27 @@
   kind: MySQLCluster
   role: mysqlcluster
   finalizer:
-    name: flightdeck.t7.io/cluster-finalizer
+    name: flightdeck.t7.io/mysqlcluster-finalizer
     role: mysqlcluster_finalizer
 - version: v1
   group: flightdeck.t7.io
   kind: MySQLDatabase
   role: mysqldatabase
   finalizer:
-    name: flightdeck.t7.io/db-finalizer
+    name: flightdeck.t7.io/mysqldatabase-finalizer
     role: mysqldatabase_finalizer
 - version: v1
   group: flightdeck.t7.io
   kind: MySQLUser
   role: mysqluser
   finalizer:
-    name: flightdeck.t7.io/user-finalizer
+    name: flightdeck.t7.io/mysqluser-finalizer
     role: mysqluser_finalizer
+- version: v1
+  group: flightdeck.t7.io
+  kind: MemcacheCluster
+  role: memcachecluster
+  finalizer:
+    name: flightdeck.t7.io/memcachecluster-finalizer
+    role: memcachecluster_finalizer
 # +kubebuilder:scaffold:watch

@@ -1,0 +1,13 @@
+---
+- name: Generate the cluster name
+  set_fact:
+    _memcache_cluster_full_name: "{{ fullname_override | default('memcachecluster-' + ansible_operator_meta.name) }}"
+
+- name: Work with configmaps
+  include_tasks: 'configmaps.yml'
+- name: Work with the statefulsets
+  include_tasks: 'statefulsets.yml'
+- name: Work with the daemonsets
+  include_tasks: 'daemonsets.yml'
+- name: Work with the services
+  include_tasks: 'services.yml'

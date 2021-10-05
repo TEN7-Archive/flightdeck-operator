@@ -1,14 +1,28 @@
 domain: t7.io
-layout: ansible.sdk.operatorframework.io/v1
+layout:
+- ansible.sdk.operatorframework.io/v1
+plugins:
+  manifests.sdk.operatorframework.io/v2: {}
+  scorecard.sdk.operatorframework.io/v2: {}
 projectName: flightdeck-operator
 resources:
-- group: flightdeck
+- domain: t7.io
+  group: flightdeck
   kind: MySQLCluster
   version: v1
-- group: flightdeck
+- domain: t7.io
+  group: flightdeck
   kind: MySQLDatabase
   version: v1
-- group: flightdeck
+- domain: t7.io
+  group: flightdeck
   kind: MySQLUser
   version: v1
-version: 3-alpha
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: t7.io
+  group: flightdeck
+  kind: MemcacheCluster
+  version: v1
+version: "3"

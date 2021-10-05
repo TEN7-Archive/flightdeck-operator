@@ -1,0 +1,52 @@
+---
+- name: Generate the cluster name
+  set_fact:
+    _memcache_cluster_full_name: "{{ fullname_override | default('memcachecluster-' + ansible_operator_meta.name) }}"
+
+- name: Delete the twemproxy service
+  k8s:
+    api_version: "v1"
+    kind: "Service"
+    name: "{{ _memcache_cluster_full_name }}"
+    namespace: "{{ ansible_operator_meta.namespace }}"
+    state: absent
+
+- name: Delete the twemproxy daemonset
+  k8s:
+    api_version: "apps/v1"
+    kind: "StatefulSet"
+    name: "{{ _memcache_cluster_full_name }}-proxy"
+    namespace: "{{ ansible_operator_meta.namespace }}"
+    state: absent
+
+- name: Delete the memcache service
+  k8s:
+    api_version: "v1"
+    kind: "Service"
+    name: "{{ _memcache_cluster_full_name }}-cache"
+    namespace: "{{ ansible_operator_meta.namespace }}"
+    state: absent
+
+- name: Delete the memcache statefulset
+  k8s:
+    api_version: "apps/v1"
+    kind: "StatefulSet"
+    name: "{{ _memcache_cluster_full_name }}-cache"
+    namespace: "{{ ansible_operator_meta.namespace }}"
+    state: absent
+
+- name: Delete the twemproxy configmap
+  k8s:
+    api_version: "v1"
+    kind: "ConfigMap"
+    name: "{{ _memcache_cluster_full_name }}-proxy"
+    namespace: "{{ ansible_operator_meta.namespace }}"
+    state: absent
+
+- name: Delete the memcache configmap
+  k8s:
+    api_version: "v1"
+    kind: "ConfigMap"
+    name: "{{ _memcache_cluster_full_name }}-cache"
+    namespace: "{{ ansible_operator_meta.namespace }}"
+    state: absent

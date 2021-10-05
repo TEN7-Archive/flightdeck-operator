@@ -1,0 +1,22 @@
+---
+- name: Create the twemproxy service
+  k8s:
+    definition: |
+      ---
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: {{ _memcache_cluster_full_name }}
+        labels:
+          app.kubernetes.io/managed-by: "flightdeck-operator"
+          app.kubernetes.io/created-by: "controller-manager"
+      spec:
+        type: LoadBalancer
+        ports:
+          - name: twemproxy
+            port: {{ proxy_port | default('11211') }}
+            protocol: TCP
+        selector:
+          app.kubernetes.io/name: "memcache"
+          memcache-cluster: "{{ _memcache_cluster_full_name }}"
+    namespace: "{{ ansible_operator_meta.namespace }}"

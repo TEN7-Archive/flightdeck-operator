@@ -3,4 +3,5 @@ resources:
 - flightdeck_v1_mysqlcluster.yaml
 - flightdeck_v1_mysqldatabase.yaml
 - flightdeck_v1_mysqluser.yaml
+- flightdeck_v1_memcachecluster.yaml
 # +kubebuilder:scaffold:manifestskustomizesamples

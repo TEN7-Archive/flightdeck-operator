@@ -90,4 +90,21 @@ rules:
       - patch
       - update
       - watch
+  ##
+  ## Rules for flightdeck.t7.io/v1, Kind: MemcacheCluster
+  ##
+  - apiGroups:
+      - flightdeck.t7.io
+    resources:
+      - memcacheclusters
+      - memcacheclusters/status
+      - memcacheclusters/finalizers
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
 # +kubebuilder:scaffold:rules
