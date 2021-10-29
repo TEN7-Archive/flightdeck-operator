@@ -1,0 +1,84 @@
+---
+- name: Create varnish configmap
+  k8s:
+    definition: |
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: {{ _phpapp_full_name }}-varnish-config
+        labels:
+          app.kubernetes.io/managed-by: "flightdeck-operator"
+          app.kubernetes.io/created-by: "controller-manager"
+          app.kubernetes.io/name: "varnish"
+          app.kubernetes.io/instance: "{{ ansible_operator_meta.name }}"
+          app.kubernetes.io/part-of: "{{ _phpapp_full_name }}"
+      data:
+        flightdeck-varnish.yml: |
+          flightdeck_varnish:
+            secretFile: "/config/varnish-secret/secret"
+            memSize: "{{ varnish.mem_size | default('32m') }}"
+            backends:
+              - name: "default"
+                host: "localhost"
+                probe: "{{ probe.state | default(false) | ternary('true', 'false') }}"
+                probeHost: "{{ probe.probe_host | default('localhost') }}"
+      {% if probe.headers is defined %}
+                probeHeaders:
+      {% for _header in probe.headers | default([]) %}
+      {% if (_header.name is defined) and (_header.value is defined) %}
+                  - name: "{{ _header.name }}"
+                    value: "{{ _header.value }}"
+      {% endif %}
+      {% endfor %}
+      {% else %}
+                probeHeaders:
+                  - name: "X-Forwarded-Proto"
+                    value: "https"
+      {% endif %}
+      {% if varnish.skip_cache is defined %}
+            skipCache:
+      {% for _skip in varnish.skip_cache %}
+              - "{{ _skip | regex_replace('\\', '\\\\') }}"
+      {% endfor %}
+      {% endif %}
+    namespace: "{{ ansible_operator_meta.namespace }}"
+- name: Create web configmap
+  k8s:
+    definition: |
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: {{ _phpapp_full_name }}-web-config
+        labels:
+          app.kubernetes.io/managed-by: "flightdeck-operator"
+          app.kubernetes.io/created-by: "controller-manager"
+          app.kubernetes.io/name: "php"
+          app.kubernetes.io/instance: "{{ ansible_operator_meta.name }}"
+          app.kubernetes.io/part-of: "{{ _phpapp_full_name }}"
+      data:
+        flightdeck-web.yml: |
+          flightdeck_web:
+            vhosts:
+              - name: "{{ server_name }}"
+      {% if server_aliases is defined %}
+                aliases:
+      {% for _server_alias in server_aliases | default([]) %}
+                  - "{{ _server_alias }}"
+      {% endfor %}
+      {% endif %}
+      {% if env is defined %}
+                env:
+      {% for _envvar in env | default([]) %}
+      {% if (_envvar.name is defined) and (_envvar.value is defined) %}
+                  - name: "{{ _envvar.name }}"
+                    value: "{{ _envvar.value }}"
+      {% endif %}
+      {% endfor %}
+      {% endif %}
+      {% if php is defined %}
+            php:
+      {% for _key in php.keys() | default([]) %}
+              {{ _key }}: "{{ php[_key] }}"
+      {% endfor %}
+      {% endif %}
+    namespace: "{{ ansible_operator_meta.namespace }}"

@@ -1,0 +1,50 @@
+---
+- name: Generate the app name
+  set_fact:
+    _phpapp_full_name: "{{ fullname_override | default('phpapp-' + ansible_operator_meta.name) }}"
+
+- name: Delete deployment
+  k8s:
+    api_version: "apps/v1"
+    kind: "Deployment"
+    name: "{{ _phpapp_full_name }}"
+    namespace: "{{ ansible_operator_meta.namespace }}"
+    state: absent
+
+- name: Delete service
+  k8s:
+    api_version: "v1"
+    kind: "Service"
+    name: "{{ _phpapp_full_name }}"
+    namespace: "{{ ansible_operator_meta.namespace }}"
+    state: absent
+
+- name: Delete secrets
+  k8s:
+    api_version: "v1"
+    kind: "Secret"
+    name: "{{ item }}"
+    namespace: "{{ ansible_operator_meta.namespace }}"
+    state: absent
+  loop:
+    - "{{ _phpapp_full_name + '-varnish' }}"
+    - "{{ _phpapp_full_name + '-settings' }}"
+
+- name: Delete the configmaps
+  k8s:
+    api_version: "v1"
+    kind: "ConfigMap"
+    name: "{{ item }}"
+    namespace: "{{ ansible_operator_meta.namespace }}"
+    state: absent
+  loop:
+    - "{{ _phpapp_full_name }}-varnish-config"
+    - "{{ _phpapp_full_name }}-web-config"
+
+- name: Delete persistent volume claim
+  k8s:
+    api_version: "v1"
+    kind: "PersistentVolumeClaim"
+    name: "{{ fullname_override | default(_phpapp_full_name) }}"
+    namespace: "{{ ansible_operator_meta.namespace }}"
+    state: absent

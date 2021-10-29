@@ -1,0 +1,25 @@
+---
+- name: Create persistent volume claim
+  k8s:
+    definition: |
+      ---
+      apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: {{ storage.name | default(_phpapp_full_name) }}
+        labels:
+          app.kubernetes.io/managed-by: "flightdeck-operator"
+          app.kubernetes.io/created-by: "controller-manager"
+          app.kubernetes.io/name: "php"
+          app.kubernetes.io/instance: "{{ ansible_operator_meta.name }}"
+          app.kubernetes.io/part-of: "{{ _phpapp_full_name }}"
+      spec:
+        storageClassName: "{{ storage.class | default(omit) }}"
+        accessModes:
+          - {{ storage.mode | default('ReadWriteOnce') }}
+        resources:
+          requests:
+            storage: {{ storage.size }}
+    namespace: "{{ ansible_operator_meta.namespace }}"
+  when:
+    - storage.size is defined

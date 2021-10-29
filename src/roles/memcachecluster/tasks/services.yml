@@ -10,6 +10,11 @@
         labels:
           app.kubernetes.io/managed-by: "flightdeck-operator"
           app.kubernetes.io/created-by: "controller-manager"
+          app.kubernetes.io/name: "MemcacheCluster"
+          app.kubernetes.io/component: "twemproxy"
+          app.kubernetes.io/instance: "{{ ansible_operator_meta.name }}"
+          app.kubernetes.io/part-of: "{{ _memcache_cluster_full_name }}"
+          flightdeck.ten7.io/memcachecluster: "{{ ansible_operator_meta.name }}"
       spec:
         type: LoadBalancer
         ports:
@@ -17,6 +22,7 @@
             port: {{ proxy_port | default('11211') }}
             protocol: TCP
         selector:
-          app.kubernetes.io/name: "memcache"
-          memcache-cluster: "{{ _memcache_cluster_full_name }}"
+          app.kubernetes.io/name: "MemcacheCluster"
+          app.kubernetes.io/component: "twemproxy"
+          flightdeck.ten7.io/memcachecluster: "{{ ansible_operator_meta.name }}"
     namespace: "{{ ansible_operator_meta.namespace }}"

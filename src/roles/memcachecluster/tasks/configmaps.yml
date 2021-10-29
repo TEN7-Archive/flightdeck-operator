@@ -9,6 +9,10 @@
         labels:
           app.kubernetes.io/managed-by: "flightdeck-operator"
           app.kubernetes.io/created-by: "controller-manager"
+          app.kubernetes.io/name: "MemcacheCluster"
+          app.kubernetes.io/instance: "{{ ansible_operator_meta.name }}"
+          app.kubernetes.io/part-of: "{{ _memcache_cluster_full_name }}"
+          flightdeck.ten7.io/memcachecluster: "{{ ansible_operator_meta.name }}"
       data:
         flightdeck-twemproxy.yml: |
           flightdeck_twemproxy:

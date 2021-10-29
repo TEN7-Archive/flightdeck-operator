@@ -16,6 +16,31 @@ rules:
       - pods
       - pods/exec
       - pods/log
+      - persistentvolumeclaims
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - "batch"
+    resources:
+      - cronjobs
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - "networking.k8s.io"
+    resources:
+      - ingresses
     verbs:
       - create
       - delete
@@ -99,6 +124,74 @@ rules:
       - memcacheclusters
       - memcacheclusters/status
       - memcacheclusters/finalizers
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  ##
+  ## Rules for flightdeck.t7.io/v1, Kind: PhpApplication
+  ##
+  - apiGroups:
+      - flightdeck.t7.io
+    resources:
+      - phpapplications
+      - phpapplications/status
+      - phpapplications/finalizers
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  ##
+  ## Rules for flightdeck.t7.io/v1, Kind: Htpasswd
+  ##
+  - apiGroups:
+      - flightdeck.t7.io
+    resources:
+      - htpasswds
+      - htpasswds/status
+      - htpasswds/finalizers
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  ##
+  ## Rules for flightdeck.t7.io/v1, Kind: PhpRoute
+  ##
+  - apiGroups:
+      - flightdeck.t7.io
+    resources:
+      - phproutes
+      - phproutes/status
+      - phproutes/finalizers
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  ##
+  ## Rules for flightdeck.t7.io/v1, Kind: PhpCronjob
+  ##
+  - apiGroups:
+      - flightdeck.t7.io
+    resources:
+      - phpcronjobs
+      - phpcronjobs/status
+      - phpcronjobs/finalizers
     verbs:
       - create
       - delete

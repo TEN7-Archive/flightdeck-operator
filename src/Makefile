@@ -33,6 +33,10 @@ deploy: kustomize
 	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
 
+deploy-local: kustomize
+	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
+	$(KUSTOMIZE) build config/default > make-deploy-local.out.yml
+
 # Undeploy controller in the configured Kubernetes cluster in ~/.kube/config
 undeploy: kustomize
 	$(KUSTOMIZE) build config/default | kubectl delete -f -

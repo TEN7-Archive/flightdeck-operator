@@ -1,0 +1,26 @@
+- name: Create web service
+  k8s:
+    definition: |
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: {{ _phpapp_full_name }}
+        labels:
+          app.kubernetes.io/managed-by: "flightdeck-operator"
+          app.kubernetes.io/created-by: "controller-manager"
+          app.kubernetes.io/name: "php"
+          app.kubernetes.io/instance: "{{ ansible_operator_meta.name }}"
+          app.kubernetes.io/part-of: "{{ _phpapp_full_name }}"
+      spec:
+        ports:
+          -
+            name: http
+            port: 80
+            protocol: TCP
+          -
+            name: varnish
+            port: 6081
+        selector:
+          app.kubernetes.io/name: "php"
+          flightdeck.ten7.io/phpapplication: "{{ ansible_operator_meta.name }}"
+    namespace: "{{ ansible_operator_meta.namespace }}"

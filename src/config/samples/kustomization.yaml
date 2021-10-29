@@ -4,4 +4,8 @@ resources:
 - flightdeck_v1_mysqldatabase.yaml
 - flightdeck_v1_mysqluser.yaml
 - flightdeck_v1_memcachecluster.yaml
+- flightdeck_v1_phpapplication.yaml
+- flightdeck_v1_htpasswd.yaml
+- flightdeck_v1_phproute.yaml
+- flightdeck_v1_phpcronjob.yaml
 # +kubebuilder:scaffold:manifestskustomizesamples

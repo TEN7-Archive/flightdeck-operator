@@ -9,6 +9,10 @@
         labels:
           app.kubernetes.io/managed-by: "flightdeck-operator"
           app.kubernetes.io/created-by: "controller-manager"
+          app.kubernetes.io/name: "MySQLCluster"
+          app.kubernetes.io/instance: "{{ ansible_operator_meta.name }}"
+          app.kubernetes.io/part-of: "{{ _mysql_cluster_full_name }}"
+          flightdeck.ten7.io/mysqlcluster: "{{ ansible_operator_meta.name }}"
       data:
         flight-deck-db.yml: |
           flightdeck_db:

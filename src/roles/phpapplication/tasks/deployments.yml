@@ -1,0 +1,170 @@
+---
+- name: Create web deployment
+  k8s:
+    definition: |
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: {{ _phpapp_full_name }}
+        labels:
+          app.kubernetes.io/managed-by: "flightdeck-operator"
+          app.kubernetes.io/created-by: "controller-manager"
+          app.kubernetes.io/name: "php"
+          app.kubernetes.io/instance: "{{ ansible_operator_meta.name }}"
+          app.kubernetes.io/part-of: "{{ _phpapp_full_name }}"
+      spec:
+        replicas: {{ replicas | default('1') }}
+        selector:
+          matchLabels:
+            app.kubernetes.io/name: "php"
+            flightdeck.ten7.io/phpapplication: "{{ ansible_operator_meta.name }}"
+      {% if strategy is defined %}
+        strategy:
+          {{ strategy | to_nice_yaml(indent=2) | indent(4) }}
+      {% else %}
+        strategy:
+          type: RollingUpdate
+          rollingUpdate:
+            maxSurge: 0
+            maxUnavailable: 1
+      {% endif %}
+        minReadySeconds: {{ min_ready_seconds | default(30) }}
+        template:
+          metadata:
+            labels:
+              app.kubernetes.io/managed-by: "flightdeck-operator"
+              app.kubernetes.io/created-by: "controller-manager"
+              app.kubernetes.io/name: "php"
+              app.kubernetes.io/instance: "{{ ansible_operator_meta.name }}"
+              app.kubernetes.io/part-of: "{{ _phpapp_full_name }}"
+              flightdeck.ten7.io/phpapplication: "{{ ansible_operator_meta.name }}"
+      {% if flightdeck_cluster.web.annotations is defined %}
+            annotations:
+      {% for _annotation in annotations | default([]) %}
+              {{ _annotation.key }}: {{ _annotation.value }}
+      {% endfor %}
+      {% endif %}
+          spec:
+      {% if (node_selector is defined) and (node_selector.key is defined) and (node_selector.value is defined) %}
+            nodeSelector:
+              {{ node_selector.key }}: {{ node_selector.value }}
+      {% endif %}
+      {% if (_flightdeck_t7_io_phpapplication_spec is defined) and (_flightdeck_t7_io_phpapplication_spec.affinity is defined )%}
+            affinity:
+              {{ _flightdeck_t7_io_phpapplication_spec.affinity | to_nice_yaml(indent=2) | indent(8) }}
+      {% endif %}
+            securityContext:
+              fsGroup: 1000
+            containers:
+              - image: {{ image | default('ten7/flightdeck-web-7.4') }}
+                imagePullPolicy: Always
+                name: web
+      {% if (_flightdeck_t7_io_phpapplication_spec is defined) and (_flightdeck_t7_io_phpapplication_spec.resources is defined )%}
+                resources:
+                  {{ _flightdeck_t7_io_phpapplication_spec.resources | to_nice_yaml(indent=2) | indent(12) }}
+      {% endif %}
+                ports:
+                  - containerPort: 80
+                volumeMounts:
+                  - name: "varnish-secret"
+                    mountPath: "/config/varnish-secret"
+                  - name: "php-settings"
+                    mountPath: "/config/php"
+                  - name: "web-config"
+                    mountPath: "/config/web"
+      {% if storage.size is defined %}
+                  - name: "web-storage"
+                    mountPath: "{{ storage.path | default('/var/www/files') }}"
+      {% endif %}
+      {% for _volume in volumes | default([]) %}
+                  - name: "{{ 'vol-pvc-' + _volume.name }}"
+                    mountPath: "{{ _volume.path | default('/mnt/' + _volume.name ) }}"
+      {% endfor %}
+      {% for _secret in secrets | default([]) %}
+                  - name: "{{ 'vol-secret-' + _secret.name }}"
+                    mountPath: "{{ _secret.path | default('/secrets') }}"
+      {% endfor %}
+      {% for _config in config_maps | default([]) %}
+                  - name: "{{ 'vol-config-' + _config.name }}"
+                    mountPath: "{{ _config.path | default('/config') }}"
+      {% endfor %}
+              - image: {{ varnish.image | default('ten7/flightdeck-varnish-6.4') }}
+                imagePullPolicy: Always
+                name: varnish
+      {% if _flightdeck_t7_io_phpapplication_spec.varnish.resources is defined %}
+                resources:
+                  {{ _flightdeck_t7_io_phpapplication_spec.varnish.resources | to_nice_yaml(indent=2) | indent(12) }}
+      {% endif %}
+                ports:
+                  - name: "varnish-http"
+                    containerPort: 6081
+                    protocol: TCP
+                  - name: "varnish-control"
+                    containerPort: 6082
+                    protocol: TCP
+                env:
+                volumeMounts:
+                  - name: "varnish-secret"
+                    mountPath: "/config/varnish-secret"
+                  - name: "varnish-config"
+                    mountPath: "/config/varnish"
+      {% for _secret in secrets | default([]) %}
+                  - name: "{{ 'vol-secret-' + _secret.name }}"
+                    mountPath: "{{ _secret.path | default('/secrets') }}"
+      {% endfor %}
+      {% for _config in configMaps | default([]) %}
+                  - name: "{{ 'vol-config-' + _config.name }}"
+                    mountPath: "{{ _config.path | default('/config') }}"
+      {% endfor %}
+      {% if host_aliases is defined %}
+            hostAliases:
+      {% for _hostAlias in host_aliases %}
+              - ip: "{{ _hostAlias.ip | default('127.0.0.1') }}"
+                hostnames:
+      {% for _hostname in _hostAlias.hostnames | default(['docker.test']) %}
+                  - "{{ _hostname }}"
+      {% endfor %}
+      {% endfor %}
+      {% endif %}
+      {% if image_pull_secrets is defined %}
+            imagePullSecrets:
+      {% for _imagePullSecret in image_pull_secrets %}
+              - name: "{{ _imagePullSecret }}"
+      {% endfor %}
+      {% endif %}
+            volumes:
+              - name: "varnish-secret"
+                secret:
+                  secretName: "{{ varnish_secret | default(_phpapp_full_name + '-varnish') }}"
+              - name: "php-settings"
+                secret:
+                  secretName: "{{ _phpapp_full_name + '-settings' }}"
+              - name: "varnish-config"
+                configMap:
+                  name: "{{ _phpapp_full_name }}-varnish-config"
+              - name: "web-config"
+                configMap:
+                  name: "{{ _phpapp_full_name }}-web-config"
+      {% if storage.size is defined %}
+              - name: "web-storage"
+                persistentVolumeClaim:
+                  claimName: "{{ storage.name | default(_phpapp_full_name) }}"
+      {% endif %}
+      {% for _volume in volumes | default([]) %}
+              - name: "{{ 'vol-pvc-' + _volume.name }}"
+                persistentVolumeClaim:
+                  claimName: "{{ _volume.fullname_override | default(_phpapp_full_name + '-' + _volume.name) }}"
+      {% endfor %}
+      {% for _secret in secrets | default([]) %}
+              - name: "{{ 'vol-secret-' + _secret.name }}"
+                secret:
+                  secretName: "{{ _secret.name }}"
+      {% endfor %}
+      {% for _config in config_maps | default([]) %}
+              - name: "{{ 'vol-config-' + _config.name }}"
+                configMap:
+                  name: "{{ _config.name }}"
+      {% endfor %}
+    namespace: "{{ ansible_operator_meta.namespace }}"
+    wait: true
+    wait_timeout: 300

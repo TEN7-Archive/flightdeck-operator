@@ -48,3 +48,5 @@
     state: absent
   when:
     - "(password_secret | default('')) == ''"
+  when:
+    - "(password_secret | default('')) == ''"

@@ -1,0 +1,109 @@
+---
+- name: Generate the route name
+  set_fact:
+    _phproute_full_name: "{{ fullname_override | default('phproute-' + ansible_operator_meta.name) }}"
+
+- name: Fetch the PhpApplication definition
+  set_fact:
+    _phpapp_def: "{{ lookup('k8s', kind='PhpApplication', namespace=ansible_operator_meta.namespace, resource_name=php_application) }}"
+
+- fail:
+    msg: "Could not find requested PhpApplication {{ php_application }}"
+  when:
+    - "(_phpapp_def | default([])) | length < 1"
+
+- name: Fetch the Htpasswd definition
+  set_fact:
+    _htpasswd_def: "{{ lookup('k8s', kind='Htpasswd', namespace=ansible_operator_meta.namespace, resource_name=auth.htpasswd) }}"
+  when:
+    - "auth.state | default(true) == true"
+    - "auth.htpasswd is defined"
+
+- fail:
+    msg: "Could not find requested Htpasswd {{ auth.htpasswd }}"
+  when:
+    - "(_htpasswd_def | default([])) | length < 1"
+    - "auth.state | default(true) == true"
+    - "auth.htpasswd is defined"
+
+- name: Generate the PHP App name
+  set_fact:
+    _phpapp_full_name: "{{ _phpapp_def.spec.fullname_override | default('phpapp-' + php_application) }}"
+
+- name: Create ingress
+  k8s:
+    state: "{{ state | default('present') }}"
+    definition: |
+      apiVersion: networking.k8s.io/v1
+      kind: Ingress
+      metadata:
+        name: "{{ _phproute_full_name }}"
+        labels:
+          app.kubernetes.io/managed-by: "flightdeck-operator"
+          app.kubernetes.io/created-by: "controller-manager"
+          app.kubernetes.io/name: "PhpRoute"
+          app.kubernetes.io/instance: "{{ ansible_operator_meta.name }}"
+          app.kubernetes.io/part-of: "{{ _phpapp_full_name }}"
+        annotations:
+          # GKE hosted clusters use the following:
+          ingress.kubernetes.io/app-root: /
+          ingress.kubernetes.io/affinity: cookie
+          # Enable cores
+          ingress.kubernetes.io/enable-cors: "true"
+          nginx.ingress.kubernetes.io/enable-cors: "true"
+          # Increase the file upload limit
+          ingress.kubernetes.io/proxy-body-size: "{{ max_body_size | default('128m') }}"
+          nginx.ingress.kubernetes.io/proxy-body-size: "{{ max_body_size | default('128m') }}"
+          # Increase the proxy timeouts
+          nginx.ingress.kubernetes.io/proxy-send-timeout: "{{ send_timeout | default('300') }}"
+          nginx.ingress.kubernetes.io/proxy-read-timeout: "{{ read_timeout | default('300') }}"
+      {% if rewrite_target is defined %}
+          nginx.ingress.kubernetes.io/rewrite-target: "{{ _ingress.rewrite_target }}"
+      {% endif %}
+      {% if (auth is defined) and (auth.state | default(true) == true) %}
+      {% set _htpasswd_secret_default_name = _htpasswd_def.spec.fullnameOverride | default('htpasswd-' + auth.htpasswd) %}
+          nginx.ingress.kubernetes.io/auth-type: "basic"
+          nginx.ingress.kubernetes.io/auth-secret: "{{ _htpasswd_def.spec.secret | default(_htpasswd_secret_default_name) }}"
+          nginx.ingress.kubernetes.io/auth-realm: "{{ auth.message | default('Please enter your login.') }}"
+      {% endif %}
+      {% if tls.issuer is defined %}
+          kubernetes.io/ingress.class: nginx
+          cert-manager.io/cluster-issuer: {{ tls.issuer }}
+      {% endif %}
+      {% if permanent_redirect is defined %}
+          nginx.ingress.kubernetes.io/permanent-redirect: {{ permanent_redirect }}
+      {% endif %}
+          nginx.ingress.kubernetes.io/use-regex: "{{ use_regex | default(true) | ternary('true', 'false') }}"
+          nginx.ingress.kubernetes.io/proxy-buffer-size: "{{ proxy_buffer_size | default('16k') }}"
+      spec:
+      {% if tls.issuer is defined %}
+        kubernetes.io/ingress.class: {{ class_name | default('nginx') }}
+      {% endif %}
+      {% if tls.state | default(false) %}
+        tls:
+          - secretName: "{{ cert_secret | default(_phproute_full_name + '-cert') }}"
+            hosts:
+      {% for _rule in rules | default([]) %}
+              - "{{ _rule.host }}"
+      {% endfor %}
+      {% endif %}
+      {% if rules is defined %}
+        rules:
+      {% for _rule in rules %}
+          - host: "{{ _rule.host }}"
+      {% if _rule.paths is defined %}
+            http:
+              paths:
+      {% for _path in _rule.paths %}
+                - path: "{{ _path.path }}"
+                  pathType: "{{ _path.path_type | default('Prefix') }}"
+                  backend:
+                    service:
+                      name: "{{ _phpapp_full_name }}"
+                      port:
+                        number: {{ _path.bypass_varnish | default(false) | bool | ternary('80', '6081') }}
+      {% endfor %}
+      {% endif %}
+      {% endfor %}
+      {% endif %}
+    namespace: "{{ ansible_operator_meta.namespace }}"

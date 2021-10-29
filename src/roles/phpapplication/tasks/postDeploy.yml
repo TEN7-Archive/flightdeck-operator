@@ -1,0 +1,21 @@
+- name: Get the name of a running web pod
+  set_fact:
+    _pod_name: "{{ (_pods | first).metadata.name }}"
+  vars:
+    _pods: "{{ lookup('k8s', kind='pod', label_selector='flightdeck.ten7.io/phpapplication=' + ansible_operator_meta.name, field_selector='status.phase=Running') }}"
+  when:
+    - _pods | length > 0
+
+- name: Run postDeploy
+  shell: >
+    kubectl
+    --namespace="{{ ansible_operator_meta.namespace }}"
+    --container=web
+    exec {{ _pod_name }}
+    --
+    {{ scripts.post_deploy }}
+  ignore_errors: yes
+  when:
+    - _pod_name | default('') != ''
+  run_once: true
+  changed_when: false

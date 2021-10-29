@@ -1,0 +1,139 @@
+---
+- name: Generate the cronjob name
+  set_fact:
+    _cronjob_full_name: "{{ fullname_override | default('phpcronjob-' + ansible_operator_meta.name) }}"
+
+- name: Fetch the PhpApplication definition
+  set_fact:
+    _phpapp_def: "{{ lookup('k8s', kind='PhpApplication', namespace=ansible_operator_meta.namespace, resource_name=php_application) }}"
+
+- fail:
+    msg: "Could not find requested PhpApplication {{ php_application }}"
+  when:
+    - "(_phpapp_def | default([])) | length < 1"
+
+- name: Generate the PHP App name
+  set_fact:
+    _phpapp_full_name: "{{ _phpapp_def.spec.fullname_override | default('phpapp-' + php_application) }}"
+
+- name: Create cronjob
+  k8s:
+    state: "{{ state | default('present') }}"
+    definition: |
+      apiVersion: batch/v1beta1
+      kind: CronJob
+      metadata:
+        name: "{{ _cronjob_full_name }}"
+        labels:
+          app.kubernetes.io/managed-by: "flightdeck-operator"
+          app.kubernetes.io/created-by: "controller-manager"
+          app.kubernetes.io/name: "PhpCronjob"
+          app.kubernetes.io/instance: "{{ ansible_operator_meta.name }}"
+          app.kubernetes.io/part-of: "{{ _phpapp_full_name }}"
+          flightdeck.ten7.io/phpapplication: "{{ php_application }}"
+      spec:
+        schedule: "{{ schedule | default('0 0 * * *') }}"
+        successfulJobsHistoryLimit: {{ keep_last_successful | default(0) }}
+        failedJobsHistoryLimit: {{ keep_last_failed | default(1) }}
+        concurrencyPolicy: {{ concurrency_policy | default('Forbid') }}
+        suspend: {{ suspend | default(false) | ternary('true', 'false') }}
+        startingDeadlineSeconds: {{ deadline_seconds | default('60') }}
+        jobTemplate:
+          spec:
+            template:
+              spec:
+      {% if (node_selector is defined) and (node_selector.key is defined) and (node_selector.value is defined) %}
+                nodeSelector:
+                  {{ node_selector.key }}: {{ node_selector.value }}
+      {% endif %}
+      {% if (_flightdeck_t7_io_phpcronjob_spec is defined) and (_flightdeck_t7_io_phpcronjob_spec.affinity is defined )%}
+                affinity:
+                  {{ _flightdeck_t7_io_phpcronjob_spec.affinity | to_nice_yaml(indent=2) | indent(12) }}
+      {% endif %}
+                containers:
+                  - name: cron
+                    image: "{{ image | default(_image) }}"
+                    imagePullPolicy: {{ image_pull_policy | default('Always') }}
+      {% if resources is defined %}
+                    resources:
+                      {{ resources | to_nice_yaml(indent=2) | indent(16) }}
+      {% endif %}
+      {% if command is defined %}
+                    command:
+      {% for _command_line in command %}
+                      - "{{ _command_line }}"
+      {% endfor %}
+      {% endif %}
+      {% if args is defined %}
+                    args:
+      {% for _arg in args %}
+                      - "{{ _arg }}"
+      {% endfor %}
+      {% endif %}
+                    volumeMounts:
+                      - name: "varnish-secret"
+                        mountPath: "/config/varnish-secret"
+                      - name: "php-settings"
+                        mountPath: "/config/php"
+                      - name: "web-config"
+                        mountPath: "/config/web"
+      {% if (_phpapp_def.spec.storage.size is defined) and (_phpapp_def.spec.storage.mode | default('') == 'ReadWriteMany') %}
+                      - name: "web-storage"
+                        mountPath: "{{ _phpapp_def.spec.storage.path | default('/var/www/files') }}"
+      {% endif %}
+      {% for _volume in _phpapp_def.spec.volumes | default([]) %}
+                      - name: "{{ 'vol-pvc-' + _volume.name }}"
+                        mountPath: "{{ _volume.path | default('/mnt/' + _volume.name ) }}"
+      {% endfor %}
+      {% for _secret in _phpapp_def.spec.secrets | default([]) %}
+                      - name: "{{ 'vol-secret-' + _secret.name }}"
+                        mountPath: "{{ _secret.path | default('/secrets') }}"
+      {% endfor %}
+      {% for _config in _phpapp_def.spec.configMaps | default([]) %}
+                      - name: "{{ 'vol-config-' + _config.name }}"
+                        mountPath: "{{ _config.path | default('/config') }}"
+      {% endfor %}
+                restartPolicy: "{{ _cronjob.restart_policy | default('OnFailure') }}"
+      {% if (_cronjob.image_pull_secrets is defined) or (image_pull_secrets is defined) %}
+                imagePullSecrets:
+      {% for _imagePullSecret in image_pull_secrets | default(_image_pull_secrets) %}
+                  - name: "{{ _imagePullSecret }}"
+      {% endfor %}
+      {% for _imagePullSecret in _cronjob.image_pull_secrets | default([]) %}
+                  - name: "{{ _imagePullSecret }}"
+      {% endfor %}
+      {% endif %}
+                volumes:
+                  - name: "varnish-secret"
+                    secret:
+                      secretName: "{{ varnish_secret | default(_phpapp_full_name + '-varnish') }}"
+                  - name: "php-settings"
+                    secret:
+                      secretName: "{{ _phpapp_full_name + '-settings' }}"
+                  - name: "web-config"
+                    configMap:
+                      name: "{{ _phpapp_full_name }}-web-config"
+      {% if _phpapp_def.spec.storage.size is defined %}
+                  - name: "web-storage"
+                    persistentVolumeClaim:
+                      claimName: "{{ _phpapp_full_name }}"
+      {% endif %}
+      {% for _volume in _phpapp_def.spec.volumes | default([]) %}
+                  - name: "{{ 'vol-pvc-' + _volume.name }}"
+                    persistentVolumeClaim:
+                      claimName: "{{ _volume.fullname_override | default(_phpapp_full_name + '-' + _volume.name) }}"
+      {% endfor %}
+      {% for _secret in _phpapp_def.spec.secrets | default([]) %}
+                  - name: "{{ 'vol-secret-' + _secret.name }}"
+                    secret:
+                      secretName: "{{ _secret.name }}"
+      {% endfor %}
+      {% for _config in _phpapp_def.spec.config_maps | default([]) %}
+                  - name: "{{ 'vol-config-' + _config.name }}"
+                    configMap:
+                      name: "{{ _config.name }}"
+      {% endfor %}
+    namespace: "{{ ansible_operator_meta.namespace }}"
+  vars:
+    _image: "{{ _phpapp_def.spec.image | default('ten7/flightdeck-web-7.4') }}"
+    _image_pull_secrets: "{{ _phpapp_def.spec.image_pull_secrets | default([]) }}"

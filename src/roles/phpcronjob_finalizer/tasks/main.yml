@@ -1,0 +1,12 @@
+---
+- name: Generate the cronjob name
+  set_fact:
+    _cronjob_full_name: "{{ fullname_override | default('phpcronjob-' + ansible_operator_meta.name) }}"
+
+- name: Delete cronjob
+  k8s:
+    api_version: "batch/v1beta1"
+    kind: "CronJob"
+    name: "{{ _cronjob_full_name }}"
+    namespace: "{{ ansible_operator_meta.namespace }}"
+    state: absent

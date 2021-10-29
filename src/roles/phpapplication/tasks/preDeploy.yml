@@ -1,0 +1,32 @@
+- name: Get the name of a running web pod
+  set_fact:
+    _pod_name: "{{ (_pods | first).metadata.name }}"
+  vars:
+    _pods: "{{ lookup('k8s', kind='pod', label_selector='flightdeck.ten7.io/phpapplication=' + ansible_operator_meta.name, field_selector='status.phase=Running') }}"
+  when:
+    - _pods | length > 0
+
+- name: Run preDeployCheck
+  shell: >
+    kubectl
+    --namespace="{{ ansible_operator_meta.namespace }}"
+    --container=web
+    exec {{ _pod_name }}
+    --
+    {{ scripts.pre_deploy_check }}
+  register: _preDeployCheck
+  ignore_errors: yes
+  when:
+    - _pod_name | default('') != ''
+  run_once: true
+  changed_when: false
+
+- name: Fail if preDeployCheck returns > 0
+  fail:
+    msg: >
+      preDeployCheck failed! Please check the status of the PhpApplication.
+  when:
+    - _pod_name | default('') != ''
+    - _preDeployCheck.rc != 0
+  run_once: true
+  changed_when: false

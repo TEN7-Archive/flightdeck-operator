@@ -25,4 +25,32 @@ resources:
   group: flightdeck
   kind: MemcacheCluster
   version: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: t7.io
+  group: flightdeck
+  kind: PhpApplication
+  version: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: t7.io
+  group: flightdeck
+  kind: Htpasswd
+  version: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: t7.io
+  group: flightdeck
+  kind: PhpRoute
+  version: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: t7.io
+  group: flightdeck
+  kind: PhpCronjob
+  version: v1
 version: "3"

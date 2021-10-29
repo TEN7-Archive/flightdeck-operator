@@ -1,0 +1,5 @@
+---
+- name: delete htpasswd temp file
+  file:
+    path:  "{{ _htpasswd_temp_file.path }}"
+    state: absent

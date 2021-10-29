@@ -1,0 +1,5 @@
+---
+- name: delete varnish secret tempfile
+  file:
+    path: _varnish_secret_passfile.path
+    state: absent

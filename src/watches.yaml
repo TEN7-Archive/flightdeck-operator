@@ -28,4 +28,33 @@
   finalizer:
     name: flightdeck.t7.io/memcachecluster-finalizer
     role: memcachecluster_finalizer
+- version: v1
+  group: flightdeck.t7.io
+  kind: PhpApplication
+  role: phpapplication
+  finalizer:
+    name: flightdeck.t7.io/phpapplication-finalizer
+    role: phpapplication_finalizer
+- version: v1
+  group: flightdeck.t7.io
+  kind: Htpasswd
+  role: htpasswd
+  finalizer:
+    name: flightdeck.t7.io/htpasswd-finalizer
+    role: htpasswd_finalizer
+- version: v1
+  group: flightdeck.t7.io
+  kind: PhpRoute
+  role: phproute
+  finalizer:
+    name: flightdeck.t7.io/phproute-finalizer
+    role: phproute_finalizer
+- version: v1
+  group: flightdeck.t7.io
+  kind: PhpCronjob
+  role: phpcronjob
+  finalizer:
+    name: flightdeck.t7.io/phpcronjob-finalizer
+    role: phpcronjob_finalizer
+
 # +kubebuilder:scaffold:watch

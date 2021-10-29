@@ -12,3 +12,6 @@ bin
 *.swp
 *.swo
 *~
+
+/test*.yml
+/make-deploy-local.out.yml

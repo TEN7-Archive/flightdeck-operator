@@ -1,0 +1,7 @@
+apiVersion: flightdeck.t7.io/v1
+kind: PhpApplication
+metadata:
+  name: phpapplication-sample
+spec:
+  # Add fields here
+  foo: bar

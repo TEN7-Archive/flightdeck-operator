@@ -1,0 +1,27 @@
+---
+- name: Perform preDeploy
+  include_tasks: 'preDeploy.yml'
+  when:
+    - scripts is defined
+    - scripts.pre_deploy_check is defined
+
+- name: Generate the app name
+  set_fact:
+    _phpapp_full_name: "{{ fullname_override | default('phpapp-' + ansible_operator_meta.name) }}"
+
+- name: Work with secrets
+  include_tasks: 'secrets.yml'
+- name: Work with configmaps
+  include_tasks: 'configmaps.yml'
+- name: Work with volumes
+  include_tasks: 'volumes.yml'
+- name: Work with the deployments
+  include_tasks: 'deployments.yml'
+- name: Work with the services
+  include_tasks: 'services.yml'
+
+- name: Perform postDeploy
+  include_tasks: 'postDeploy.yml'
+  when:
+    - scripts is defined
+    - scripts.post_deploy is defined

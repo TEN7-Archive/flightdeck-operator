@@ -1,5 +1,6 @@
 ---
 collections:
+  - name: community.general
   - name: community.mysql
     version: ">=2.1.0"
   - name: community.kubernetes

@@ -53,6 +53,31 @@ rules:
   - pods
   - pods/exec
   - pods/log
+  - persistentvolumeclaims
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - batch
+  resources:
+  - cronjobs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
   verbs:
   - create
   - delete
@@ -110,6 +135,76 @@ rules:
   - mysqlusers
   - mysqlusers/status
   - mysqlusers/finalizers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - flightdeck.t7.io
+  resources:
+  - memcacheclusters
+  - memcacheclusters/status
+  - memcacheclusters/finalizers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - flightdeck.t7.io
+  resources:
+  - phpapplications
+  - phpapplications/status
+  - phpapplications/finalizers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - flightdeck.t7.io
+  resources:
+  - htpasswds
+  - htpasswds/status
+  - htpasswds/finalizers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - flightdeck.t7.io
+  resources:
+  - phproutes
+  - phproutes/status
+  - phproutes/finalizers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - flightdeck.t7.io
+  resources:
+  - phpcronjobs
+  - phpcronjobs/status
+  - phpcronjobs/finalizers
   verbs:
   - create
   - delete

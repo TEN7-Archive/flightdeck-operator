@@ -1,0 +1,20 @@
+# permissions for end users to view phproutes.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: phproute-viewer-role
+rules:
+- apiGroups:
+  - flightdeck.t7.io
+  resources:
+  - phproutes
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - flightdeck.t7.io
+  resources:
+  - phproutes/status
+  verbs:
+  - get

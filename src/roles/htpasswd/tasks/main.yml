@@ -1,0 +1,40 @@
+---
+- name: Generate the htpasswd full name
+  set_fact:
+    _htpasswd_full_name: "{{ fullname_override | default('htpasswd-' + ansible_operator_meta.name) }}"
+
+# We always need to create this file, so tell Ansible to ignore it as a change.
+- name: Create a temp file for the htpasswd
+  tempfile:
+    state: file
+    prefix: "htpasswd"
+  register: _htpasswd_temp_file
+  notify:
+    - delete htpasswd temp file
+  changed_when: false
+
+- name: Work with logins
+  include_tasks: 'login.yml'
+  loop: "{{ logins | default([]) }}"
+  loop_control:
+    loop_var: _login
+    label: "{{ _login.name }}"
+
+- name: Create htpasswd secret
+  k8s:
+    definition: |
+      apiVersion: v1
+      data:
+        auth: "{{ lookup('file', _htpasswd_temp_file.path) | b64encode }}"
+      kind: Secret
+      metadata:
+        name: "{{ secret | default(_htpasswd_full_name) }}"
+        labels:
+          app.kubernetes.io/managed-by: "flightdeck-operator"
+          app.kubernetes.io/created-by: "controller-manager"
+          app.kubernetes.io/name: "Htpasswd"
+          app.kubernetes.io/instance: "{{ ansible_operator_meta.name }}"
+          app.kubernetes.io/part-of: "{{ _htpasswd_full_name }}"
+          flightdeck.ten7.io/htpasswd: "{{ ansible_operator_meta.name }}"
+      type: Opaque
+    namespace: "{{ ansible_operator_meta.namespace }}"
