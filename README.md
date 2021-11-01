@@ -89,11 +89,35 @@ spec:
             values:
             - web-pool
 ```
-
 Where:
 
 * **nodeSelector** specifies a node selector by which to place containers. Must have both a `key` and a `value`. Optional.
 * **affinity** is a Kubernetes affinity statement by which to place containers. Optional.
+
+### Controlling resource allocation
+
+By default, all containers for the MySQL cluster are run without any requests or limits as to memory and CPU resources. You define those requests and limits using the `resources` key:
+
+```yaml
+apiVersion: flightdeck.t7.io/v1
+kind: MySQLCluster
+metadata:
+  name: mysqlcluster-sample
+  namespace: my-database-namespace
+spec:
+  nodeSelector:
+    key: doks.digitalocean.com/node-pool
+    value: web-pool
+  resources:
+    requests:
+      memory: "1024Mi"
+      cpu: "250m"
+    limits:
+      memory: "2048Mi"
+      cpu: "1000m"
+```
+
+See the [Kubernetes documentation on resources](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) for a complete description of use.
 
 ### Defining MySQL databases
 
@@ -389,6 +413,38 @@ Where:
 
 Due to a design limitation of the operator, the above scripts are run twice.
 
+### Controlling resource allocation
+
+Each pod which supports a PHP application is made of two containers, one which provides a web server and PHP ("web") and a varnish container. The primary configuration which controls memory allocation for each is `spec.php.php.memory_limit` for web, and `spec.varnish.memSize` for varnish.
+
+You may wish to impose additional restrictions on the application such that Kubernetes can better schedule and monitor the application. You can do this with the `resources` key for web, and the `varnish.resources` key for varnish:
+
+```yaml
+apiVersion: flightdeck.t7.io/v1
+kind: PhpApplication
+metadata:
+  name: my-php-app
+  namespace: example-com
+spec:
+  resources:
+    requests:
+      memory: "320Mi"
+      cpu: "120m"
+    limits:
+      memory: "700Mi"
+      cpu: "500m"
+  varnish:
+    resources:
+      requests:
+        memory: "64Mi"
+        cpu: "50m"
+      limits:
+        memory: "100Mi"
+        cpu: "250m"
+```
+
+See the [Kubernetes documentation on resources](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) for a complete description of use.
+
 ## Background tasks for PHP Applications
 
 Often, you want to run background tasks for your PHP applications. While this can be done with normal Kubernetes `cronjob` definitions, often these tasks rely on the same image, configmaps, secrets, and volumes of the PHP application they support.
@@ -423,6 +479,7 @@ Where:
 
 * **phpApplication** is the name of the `PhpApplication` definition. Required.
 * **image** is the container image to use for the background task. Optional, defaults to the `image` value of the `PhpApplication` definition.
+* **resources** is the [Kubernetes resources definition](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) for the background task. Optional.
 * **nodeSelector** is the key/value pair to use to place the pod in the cluster. Optional.
 * **affinity** is the Kubernetes affinity statement used to place the pod in the cluster. Optional.
 * **resources** is the container physical resource requests and limits.
@@ -603,3 +660,36 @@ Where:
 * **threads** is the number of threads to use for each memcache instance. Optional, defaults to `4`.
 * **nodeSelector** specifies a node selector by which to place containers. Must have both a `key` and a `value`. Optional.
 * **affinity** is a Kubernetes affinity statement by which to place containers. Optional.
+
+
+### Controlling resource allocation
+
+Memcache clusters are composed of a statefulset of memcache containers, and a daemonset of twemproxy load balancers. The `spec.memory` key defines how much memory to use for caching.
+
+You may wish to impose additional restrictions on the memcache cluster such that Kubernetes can better schedule and monitor the application. You can do this with the `resources` key for the memcache statefulset, and the `twemproxy.resources` key for twemproxy load balancer daemonset:
+
+```yaml
+apiVersion: flightdeck.t7.io/v1
+kind: MemcacheCluster
+metadata:
+  name: cc04
+  namespace: flightdeck-operator-system
+spec:
+  resources:
+    requests:
+      memory: "100Mi"
+      cpu: "50m"
+    limits:
+      memory: "200Mi"
+      cpu: "200m"
+  twemproxy:
+    resources:
+      requests:
+        memory: "64Mi"
+        cpu: "50m"
+      limits:
+        memory: "100Mi"
+        cpu: "250m"
+```
+
+See the [Kubernetes documentation on resources](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) for a complete description of use.

@@ -42,9 +42,9 @@
               - name: "memcache"
                 image: {{ image | default('ten7/flightdeck-memcache-1.6') }}
                 imagePullPolicy: Always
-      {% if resources is defined %}
+      {% if _flightdeck_t7_io_memcachecluster_spec.resources is defined %}
                 resources:
-                  {{ resources | to_nice_yaml(indent=2) | indent(12) }}
+                  {{ _flightdeck_t7_io_memcachecluster_spec.resources | to_nice_yaml(indent=2) | indent(12) }}
       {% endif %}
                 env:
       {% if flightdeck_debug | default(false) %}

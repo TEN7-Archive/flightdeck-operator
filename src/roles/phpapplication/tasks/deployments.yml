@@ -59,7 +59,7 @@
               - image: {{ image | default('ten7/flightdeck-web-7.4') }}
                 imagePullPolicy: Always
                 name: web
-      {% if (_flightdeck_t7_io_phpapplication_spec is defined) and (_flightdeck_t7_io_phpapplication_spec.resources is defined )%}
+      {% if _flightdeck_t7_io_phpapplication_spec.resources is defined %}
                 resources:
                   {{ _flightdeck_t7_io_phpapplication_spec.resources | to_nice_yaml(indent=2) | indent(12) }}
       {% endif %}

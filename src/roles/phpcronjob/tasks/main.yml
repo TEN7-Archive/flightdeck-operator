@@ -54,9 +54,9 @@
                   - name: cron
                     image: "{{ image | default(_image) }}"
                     imagePullPolicy: {{ image_pull_policy | default('Always') }}
-      {% if resources is defined %}
+      {% if _flightdeck_t7_io_phpcronjob_spec.resources is defined %}
                     resources:
-                      {{ resources | to_nice_yaml(indent=2) | indent(16) }}
+                      {{ _flightdeck_t7_io_phpcronjob_spec.resources | to_nice_yaml(indent=2) | indent(16) }}
       {% endif %}
       {% if command is defined %}
                     command:

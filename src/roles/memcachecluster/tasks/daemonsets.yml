@@ -32,9 +32,9 @@
               - name: "twemproxy"
                 image: {{ image | default('ten7/flightdeck-twemproxy-0.4') }}
                 imagePullPolicy: Always
-      {% if resources is defined %}
+      {% if _flightdeck_t7_io_memcachecluster_spec.twemproxy.resources is defined %}
                 resources:
-                  {{ resources | to_nice_yaml(indent=2) | indent(12) }}
+                  {{ _flightdeck_t7_io_memcachecluster_spec.twemproxy.resources | to_nice_yaml(indent=2) | indent(12) }}
       {% endif %}
                 env:
       {% if flightdeck_debug | default(false) %}
