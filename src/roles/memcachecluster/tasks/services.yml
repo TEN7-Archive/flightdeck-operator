@@ -16,7 +16,6 @@
           app.kubernetes.io/part-of: "{{ _memcache_cluster_full_name }}"
           flightdeck.ten7.io/memcachecluster: "{{ ansible_operator_meta.name }}"
       spec:
-        type: LoadBalancer
         ports:
           - name: twemproxy
             port: {{ proxy_port | default('11211') }}
