@@ -1,0 +1,41 @@
+---
+- name: Update the CRD status
+  operator_sdk.util.k8s_status:
+    api_version: flightdeck.t7.io/v1
+    kind: SolrCluster
+    name: "{{ ansible_operator_meta.name }}"
+    namespace: "{{ ansible_operator_meta.namespace }}"
+    status:
+      flightdeckOperator:
+        firstRun: true
+        status: false
+        deleting: true
+        message: "SolrCluster {{ ansible_operator_meta.name }} is being deleted."
+
+- name: Generate the cluster name
+  set_fact:
+    _solr_cluster_full_name: "{{ fullname_override | default('solrcluster-' + ansible_operator_meta.name) }}"
+
+- name: Delete the solr service
+  k8s:
+    api_version: "v1"
+    kind: "Service"
+    name: "{{ _solr_cluster_full_name }}"
+    namespace: "{{ ansible_operator_meta.namespace }}"
+    state: absent
+
+- name: Delete the solr statefulset
+  k8s:
+    api_version: "apps/v1"
+    kind: "StatefulSet"
+    name: "{{ _solr_cluster_full_name }}"
+    namespace: "{{ ansible_operator_meta.namespace }}"
+    state: absent
+
+- name: Delete the solr configmap
+  k8s:
+    api_version: "v1"
+    kind: "ConfigMap"
+    name: "{{ _solr_cluster_full_name }}"
+    namespace: "{{ ansible_operator_meta.namespace }}"
+    state: absent

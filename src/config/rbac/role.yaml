@@ -29,6 +29,7 @@ rules:
       - "batch"
     resources:
       - cronjobs
+      - jobs
     verbs:
       - create
       - delete
@@ -192,6 +193,74 @@ rules:
       - phpcronjobs
       - phpcronjobs/status
       - phpcronjobs/finalizers
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  ##
+  ## Rules for flightdeck.t7.io/v1, Kind: SolrCluster
+  ##
+  - apiGroups:
+      - flightdeck.t7.io
+    resources:
+      - solrclusters
+      - solrclusters/status
+      - solrclusters/finalizers
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  ##
+  ## Rules for flightdeck.t7.io/v1, Kind: SolrCore
+  ##
+  - apiGroups:
+      - flightdeck.t7.io
+    resources:
+      - solrcores
+      - solrcores/status
+      - solrcores/finalizers
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  ##
+  ## Rules for flightdeck.t7.io/v1, Kind: ZookeeperCluster
+  ##
+  - apiGroups:
+      - flightdeck.t7.io
+    resources:
+      - zookeeperclusters
+      - zookeeperclusters/status
+      - zookeeperclusters/finalizers
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  ##
+  ## Rules for flightdeck.t7.io/v1, Kind: SolrConfigset
+  ##
+  - apiGroups:
+      - flightdeck.t7.io
+    resources:
+      - solrconfigsets
+      - solrconfigsets/status
+      - solrconfigsets/finalizers
     verbs:
       - create
       - delete

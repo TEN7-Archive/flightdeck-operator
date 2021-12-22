@@ -7,19 +7,19 @@
   set_fact:
     _login_secret_def: "{{ lookup('k8s', kind='secret', namespace=ansible_operator_meta.namespace, resource_name=_login_secret_name) }}"
 
-- name: Create tempfile for the login secret
-  tempfile:
-    state: file
-    prefix: "login_secret"
-  register: _login_secret_passfile
-  when:
-    - "(_login_secret_def | length) < 1"
+# - name: Create tempfile for the login secret
+#   tempfile:
+#     state: file
+#     prefix: "login_secret"
+#   register: _login_secret_passfile
+#   when:
+#     - "(_login_secret_def | length) < 1"
 
 - name: Get the login password
   set_fact:
     _login_secret_password: "\
       {% if _login_secret_def.data['password'] is not defined %}\
-      {{ lookup('password', '_login_secret_passfile.path chars=ascii_letters,digits,hexdigits,punctuation') }}\
+      {{ lookup('password', '/dev/null chars=ascii_letters,digits,hexdigits,punctuation length=20') }}\
       {% else %}\
       {{ _login_secret_def.data['password'] | b64decode }}\
       {% endif %}"
@@ -50,9 +50,9 @@
     password: "{{ _login_secret_password }}"
   changed_when: false
 
-- name: Delete the tempfile for the login secret
-  file:
-    path: "{{ _login_secret_passfile.path }}"
-    state: absent
-  when:
-    - _login_secret_passfile.path is defined
+# - name: Delete the tempfile for the login secret
+#   file:
+#     path: "{{ _login_secret_passfile.path }}"
+#     state: absent
+#   when:
+#     - _login_secret_passfile.path is defined

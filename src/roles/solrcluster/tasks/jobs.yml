@@ -1,0 +1,93 @@
+---
+- name: Create the security.json secret
+  k8s:
+    definition: |
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: security-json-{{ _solr_cluster_full_name }}
+        labels:
+          app.kubernetes.io/managed-by: "flightdeck-operator"
+          app.kubernetes.io/created-by: "controller-manager"
+          app.kubernetes.io/name: "SolrCluster"
+          app.kubernetes.io/instance: "{{ ansible_operator_meta.name }}"
+          app.kubernetes.io/part-of: "{{ _solr_cluster_full_name }}"
+          flightdeck.ten7.io/solrcluster: "{{ ansible_operator_meta.name }}"
+      type: Opaque
+      stringData:
+        security.json: |
+          {
+            "authentication": {
+              "blockUnknown": true,
+              "class": "solr.BasicAuthPlugin",
+              "credentials": {
+                "solr": "IV0EHq1OnNrj6gvRCwvFwTrZ1+z1oBbnQdiVC3otuq0= Ndd7LKvVBAaZIF0QAVi1ekCfAJXr1GGfLtRUXhgrF8c=",
+              },
+              "realm": "Flightdeck Solr users",
+              "forwardCredentials": false
+            },
+            "authorization": {
+              "class": "solr.RuleBasedAuthorizationPlugin",
+              "permissions": [
+                {
+                  "name": "security-edit",
+                  "role": "admin"
+                }
+              ],
+              "user-role": {
+                "solr": "admin",
+              }
+            }
+          }
+    namespace: "{{ ansible_operator_meta.namespace }}"
+  when:
+    - "(_solr_admin_secret_def | length) < 1"
+
+- name: Start the security.json upload job
+  k8s:
+    definition: |
+      apiVersion: batch/v1
+      kind: Job
+      metadata:
+        name: "upload-security-json-{{ _solr_cluster_full_name }}"
+        labels:
+          app.kubernetes.io/managed-by: "flightdeck-operator"
+          app.kubernetes.io/created-by: "controller-manager"
+          app.kubernetes.io/name: "SolrCluster"
+          app.kubernetes.io/instance: "{{ ansible_operator_meta.name }}"
+          app.kubernetes.io/part-of: "{{ _solr_cluster_full_name }}"
+          flightdeck.ten7.io/solrcluster: "{{ ansible_operator_meta.name }}"
+      spec:
+        template:
+          spec:
+            containers:
+              - name: "solr"
+                image: {{ image | default('ten7/flightdeck-solr-8:develop') }}
+                command:
+                  - /opt/solr/server/scripts/cloud-scripts/zkcli.sh
+                args:
+                  - -cmd
+                  - putfile
+                  - /security.json
+                  - -z {{ _zkstring }}
+                  - /secrets/security-json/security.json
+                volumeMounts:
+                  - name: "secrets-json"
+                    mountPath: "/secrets/security-json"
+            restartPolicy: Never
+            volumes:
+              - name: "secrets-json"
+                secret:
+                  secretName: security-json-{{ _solr_cluster_full_name }}
+        backoffLimit: 3
+    namespace: "{{ ansible_operator_meta.namespace }}"
+    wait: true
+    wait_timeout: 60
+  vars:
+    _zkstring: "\
+      {% for i in range(_zkcluster_def.spec.replicas) %}\
+      {{ _zookeeper_cluster_full_name }}-{{ i }}.{{ _zookeeper_cluster_full_name }}.{{ _zookeeper_cluster_namespace }}.svc.cluster.local:{{ _zkcluster_def.spec.port | default('2181') }}\
+      {% if not loop.last %},{% endif %}\
+      {% endfor %}"
+  when:
+    - "(_solr_admin_secret_def | length) < 1"

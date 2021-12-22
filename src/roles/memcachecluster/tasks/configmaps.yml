@@ -35,7 +35,7 @@
             server_retry_timeout: 30000
             server_failure_limit: 30
             servers:
-      {% for i in range(replicas) %}
+      {% for i in range(replicas | default(3)) %}
               - {{ _memcache_cluster_full_name }}-cache-{{ i }}.{{ _memcache_cluster_full_name }}-cache:{{ cache_port | default('11211') }}:1
       {% endfor %}
     namespace: "{{ ansible_operator_meta.namespace }}"

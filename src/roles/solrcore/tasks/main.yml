@@ -1,0 +1,108 @@
+---
+- name: Generate the SolrCluster namespace
+  set_fact:
+    _solrcluster_namespace: "{{ solr_cluster.namespace | default(ansible_operator_meta.namespace) }}"
+
+- name: Fetch the SolrCluster definition
+  set_fact:
+    _solrcluster_def: "{{ lookup('k8s', kind='SolrCluster', namespace=_solrcluster_namespace, resource_name=solr_cluster.name) }}"
+
+- fail:
+    msg: "Could not find requested SolrCluster {{ solr_cluster.name }}"
+  when:
+    - "(_solrcluster_def | default([])) | length < 1"
+
+- name: Generate the solr cluster name
+  set_fact:
+    _solr_cluster_full_name: "{{ _solrcluster_def.spec.fullnameOverride | default('solrcluster-' + solr_cluster.name) }}"
+
+- name: Generate the solr service url
+  set_fact:
+    _solr_cluster_url: "http://{{ _solr_cluster_full_name }}.{{ _solrcluster_namespace }}.svc.cluster.local:{{ _solrcluster_def.spec.port | default('8983') }}"
+
+- name: Generate the solr admin secret name
+  set_fact:
+    _solr_admin_secret_name: "{{ _solrcluster_def.spec.solrAdmin.secret | default(_solr_cluster_full_name + '-admin') }}"
+
+- name: Fetch the solr admin secret
+  set_fact:
+    _solr_admin_secret_def: "{{ lookup('k8s', kind='secret', namespace=ansible_operator_meta.namespace, resource_name=_solr_admin_secret_name) }}"
+
+- fail:
+    msg: "Could not find requested secret {{ _solr_admin_secret_name }}"
+  when:
+    - "(_solr_admin_secret_def | default([])) | length < 1"
+
+- name: Extract the solr admin credentials
+  set_fact:
+    _solr_admin_user: "{{ _solr_admin_secret_def.data['user'] | b64decode }}"
+    _solr_admin_password: "{{ _solr_admin_secret_def.data['password'] | b64decode }}"
+
+- name: Get a list of existing collections
+  uri:
+    url: "{{ _solr_cluster_url }}/solr/admin/collections?action=LIST&omitHeader=true"
+    method: GET
+    force_basic_auth: true
+    user: "{{ _solr_admin_user }}"
+    password: "{{ _solr_admin_password }}"
+    return_content: yes
+    status_code:
+      - 200
+  register: _collection_list
+  until: _collection_list.status == 200
+  retries: 3
+  delay: 30
+
+- name: Create collection if it doesn't exist
+  uri:
+    url: "\
+      {{ _solr_cluster_url }}/solr/admin/collections\
+      ?action=CREATE\
+      &name={{ ansible_operator_meta.name }}\
+      &collection.configName={{ config_set.name }}\
+      &replicationFactor=1\
+      &numShards=1\
+      &wt=xml"
+    method: GET
+    force_basic_auth: true
+    user: "{{ _solr_admin_user }}"
+    password: "{{ _solr_admin_password }}"
+    return_content: yes
+    status_code:
+      - 200
+  register: _collection_create
+  when:
+    - ansible_operator_meta.name not in _collection_list.json.collections | default([])
+  until: (_collection_list.status == 200) or (_collection_list.status == 400)
+  retries: 3
+  delay: 30
+
+- name: Reload collection if it does exist
+  uri:
+    url: "{{ _solr_cluster_url }}/solr/admin/collections?action=RELOAD&name={{ ansible_operator_meta.name }}&wt=xml"
+    method: GET
+    force_basic_auth: true
+    user: "{{ _solr_admin_user }}"
+    password: "{{ _solr_admin_password }}"
+    return_content: yes
+    status_code:
+      - 200
+  register: _collection_reload
+  when:
+    - ansible_operator_meta.name in _collection_list.json.collections | default([])
+  until: (_collection_list.status == 200) or (_collection_list.status == 400)
+  retries: 3
+  delay: 30
+
+- name: Update the CRD status
+  operator_sdk.util.k8s_status:
+    api_version: flightdeck.t7.io/v1
+    kind: SolrCore
+    name: "{{ ansible_operator_meta.name }}"
+    namespace: "{{ ansible_operator_meta.namespace }}"
+    status:
+      flightdeckOperator:
+        firstRun: true
+        status: true
+        deleting: false
+        message: "SolrCore {{ ansible_operator_meta.name }} ready."

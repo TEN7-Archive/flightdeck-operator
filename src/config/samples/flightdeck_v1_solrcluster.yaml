@@ -1,0 +1,7 @@
+apiVersion: flightdeck.t7.io/v1
+kind: SolrCluster
+metadata:
+  name: solrcluster-sample
+spec:
+  # Add fields here
+  foo: bar

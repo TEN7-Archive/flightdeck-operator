@@ -56,5 +56,32 @@
   finalizer:
     name: flightdeck.t7.io/phpcronjob-finalizer
     role: phpcronjob_finalizer
-
+- version: v1
+  group: flightdeck.t7.io
+  kind: SolrCluster
+  role: solrcluster
+  finalizer:
+    name: flightdeck.t7.io/solrcluster-finalizer
+    role: solrcluster_finalizer
+- version: v1
+  group: flightdeck.t7.io
+  kind: SolrCore
+  role: solrcore
+  finalizer:
+    name: flightdeck.t7.io/solrcore-finalizer
+    role: solrcore_finalizer
+- version: v1
+  group: flightdeck.t7.io
+  kind: ZookeeperCluster
+  role: zookeepercluster
+  finalizer:
+    name: flightdeck.t7.io/zookeepercluster-finalizer
+    role: zookeepercluster_finalizer
+- version: v1
+  group: flightdeck.t7.io
+  kind: SolrConfigset
+  role: solrconfigset
+  finalizer:
+    name: flightdeck.t7.io/solrconfigset-finalizer
+    role: solrconfigset_finalizer
 # +kubebuilder:scaffold:watch

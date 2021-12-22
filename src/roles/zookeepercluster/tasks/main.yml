@@ -1,0 +1,23 @@
+---
+- name: Generate the cluster name
+  set_fact:
+    _zookeeper_cluster_full_name: "{{ fullname_override | default('zookeepercluster-' + ansible_operator_meta.name) }}"
+
+- name: Work with configmaps
+  include_tasks: 'configmaps.yml'
+- name: Work with the statefulsets
+  include_tasks: 'statefulsets.yml'
+- name: Work with the services
+  include_tasks: 'services.yml'
+
+- name: Update the CRD status
+  operator_sdk.util.k8s_status:
+    api_version: flightdeck.t7.io/v1
+    kind: ZookeeperCluster
+    name: "{{ ansible_operator_meta.name }}"
+    namespace: "{{ ansible_operator_meta.namespace }}"
+    status:
+      flightdeckOperator:
+        firstRun: true
+        status: true
+        message: "ZookeeperCluster {{ ansible_operator_meta.name }} ready."

@@ -38,7 +38,6 @@ spec:
   replicas: 3
   mysql_admin_secret: mysql-admin
   mysql_readers_secret: mysql-reader
-  size: 20Gi
 ```
 
 Where:
@@ -48,13 +47,41 @@ Where:
 * **mysql_admin_secret** is the name of the secret to use to store the MySQL root password. Optional, defaults to the value of `fullnameOverride` followed by -root.
 * **mysql_readers_secret** is the name of the secret to use to store Flightdeck Operator user credentials. Optional, defaults to the value of `fullnameOverride` followed by -operator.
 * **mysql_readers_secret** is the name of the secret to use to store replication user credentials. Optional, defaults to the value of `fullnameOverride` followed by -reader.
-* **size** is the size of the persistent storage to allocate for each MySQL replica. Required.
-* **accessMode** is the access mode by which to mount the persistent storage. Optional, defaults to `ReadWriteOnce`.
-* **storageClass** is the storage class to use to allocate persistent storage. Optional.
 * **nodeSelector** specifies a node selector by which to place containers. Must have both a `key` and a `value`. Optional.
 * **affinity** is a Kubernetes affinity statement by which to place containers. Optional.
 
 Note, if the secrets do not exist, they will be created and populated with a randomly generated password.
+
+### Persistency
+
+To ensure that your databases are preserved if a container is deleted or replaced, use the `persistence` key:
+
+```yaml
+apiVersion: flightdeck.t7.io/v1
+kind: MySQLCluster
+metadata:
+  name: mysqlcluster-sample
+  namespace: my-database-namespace
+spec:
+  persistence:
+    enabled: true
+    name: "mysql-data"
+    existingClaim: "my-mysql-pvc"
+    size: 20Gi
+    accessModes:
+      - ReadWriteOnce
+    storageClass: "rook-ceph"
+```
+
+Where:
+* **enabled** specifies if persistent storage is enabled (`true`), or disabled (`false`). Optional, defaults to `false`.
+* **name** is the name of the PersistentVolumeClaim (PVC) to use when allocating storage. Optional, defaults to the value of `fullnameOverride`. Ignored when using `existingClaim`.
+* **existingClaim** is the name of an existing PersistentVolumeClaim (PVC) in the same namespace as the `MySQLCluster` definition. Optional.
+* **size** is the size of the persistent storage to allocate for each MySQL replica. Required when `enabled` is `true`, and not using `existingClaim`.
+* **accessModes** is a list of access modes by which to mount the persistent storage. Optional, defaults to `ReadWriteOnce`.
+* **storageClass** is the storage class to use to allocate persistent storage. Optional.
+
+Note that replication may not function when using an existing claim or an `accessMode` of `ReadWriteMany`.
 
 ### Controlling container placement
 
@@ -211,9 +238,10 @@ Where:
 * **mysqlUsers** is a list of `MySQLUser` definitions utilized by this application. Optional.
 * **docroot** is the path to the docroot of the application. Optional, defaults to `/var/www/html` inside the `image` container.
 
-### Specifying storage
 
-If your application requires persistent file storage, you can use the `storage` key:
+### Persistency
+
+If your application requires persistent file storage, you can use the `persistence` key:
 
 ```yaml
 apiVersion: flightdeck.t7.io/v1
@@ -222,20 +250,24 @@ metadata:
   name: my-php-app
   namespace: example-com
 spec:
-  storage:
+  persistence:
+    enabled: true
     name: "muffy-live-files"
-    class: "rook-cephfs"
-    mode: "ReadWriteMany"
+    existingClaim: "my-php-pvc"
     size: "5Gi"
+    accessModes:
+      - "ReadWriteOnce"
+    storageClass: "rook-ceph"
     path: "/var/www/files"
 ```
 
 Where:
-
-* **name** is the name of the PersistentVolumeClaim (PVC) to use when allocating storage. Optional, defaults to the value of `fullnameOverride`.
-* **class** is the storage class to use when allocating the PVC. Optional.
-* **mode** is the access mode to use when mounting the PVC. Optional, defaults to `ReadWriteOnce`.
-* **size** is the size of the PVC to allocate. Required.
+* **enabled** specifies if persistent storage is enabled (`true`), or disabled (`false`). Optional, defaults to `false`.
+* **name** is the name of the PersistentVolumeClaim (PVC) to use when allocating storage. Optional, defaults to the value of `fullnameOverride`. Ignored when using `existingClaim`.
+* **existingClaim** is the name of an existing PersistentVolumeClaim (PVC) in the same namespace as the `PhpApplication` definition. Optional.
+* **size** is the size of the persistent storage to allocate for the PHP application. Required when `enabled` is `true`, and not using `existingClaim`.
+* **accessModes** is a list of access modes by which to mount the persistent storage. Optional, defaults to `ReadWriteOnce`.
+* **storageClass** is the storage class to use to allocate persistent storage. Optional.
 * **path** is the path inside the container to mount the PVC. Optional, defaults to `/var/www/files`.
 
 ### Hostnames

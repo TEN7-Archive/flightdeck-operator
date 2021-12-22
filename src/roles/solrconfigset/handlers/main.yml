@@ -1,0 +1,10 @@
+---
+- name: delete configset tempdir
+  file:
+    path: _configset_tempdir.path
+    state: absent
+
+- name: delete configset archive
+  file:
+    path: _configset_archive.path
+    state: absent

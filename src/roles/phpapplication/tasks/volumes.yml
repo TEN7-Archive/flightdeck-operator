@@ -6,20 +6,25 @@
       apiVersion: v1
       kind: PersistentVolumeClaim
       metadata:
-        name: {{ storage.name | default(_phpapp_full_name) }}
+        name: "{{ persistence.name | _phpapp_full_name }}"
         labels:
           app.kubernetes.io/managed-by: "flightdeck-operator"
           app.kubernetes.io/created-by: "controller-manager"
           app.kubernetes.io/name: "php"
           app.kubernetes.io/instance: "{{ ansible_operator_meta.name }}"
           app.kubernetes.io/part-of: "{{ _phpapp_full_name }}"
+          flightdeck.ten7.io/phpapplication: "{{ ansible_operator_meta.name }}"
       spec:
-        storageClassName: "{{ storage.class | default(omit) }}"
         accessModes:
-          - {{ storage.mode | default('ReadWriteOnce') }}
+      {% for _accessMode in persistence.access_modes | default(['ReadWriteOnce']) %}
+          - {{ _accessMode }}
+      {% endfor %}
+      {% if persistence.storage_class is defined %}
+        storageClassName: "{{ persistence.storage_class }}"
+      {% endif %}
         resources:
           requests:
-            storage: {{ storage.size }}
+            storage: {{ persistence.size | default('10Gi') }}
     namespace: "{{ ansible_operator_meta.namespace }}"
   when:
     - storage.size is defined

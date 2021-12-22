@@ -1,0 +1,27 @@
+---
+- name: Create solr configmap
+  k8s:
+    definition: |
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: {{ _solr_cluster_full_name }}
+        labels:
+          app.kubernetes.io/managed-by: "flightdeck-operator"
+          app.kubernetes.io/created-by: "controller-manager"
+          flightdeck.ten7.io/solrcluster: "{{ ansible_operator_meta.name }}"
+      data:
+        flightdeck-solr.yml: |
+          flightdeck_solr:
+      {% if flightdeck_debug | default(false) %}
+            flightdeck_debug: yes
+      {% endif %}
+            port: "{{ port | default('8983') }}"
+            cloud:
+              state: yes
+              zookeepers:
+      {% for i in range(_zkcluster_def.spec.replicas) %}
+                - url: "{{ _zookeeper_cluster_full_name }}-{{ i }}.{{ _zookeeper_cluster_full_name }}.{{ _zookeeper_cluster_namespace }}.svc.cluster.local"
+                  port: "{{ _zkcluster_def.spec.port | default('2181') }}"
+      {% endfor %}
+    namespace: "{{ ansible_operator_meta.namespace }}"

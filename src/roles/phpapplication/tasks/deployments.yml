@@ -45,9 +45,9 @@
       {% endfor %}
       {% endif %}
           spec:
-      {% if (node_selector is defined) and (node_selector.key is defined) and (node_selector.value is defined) %}
+      {% if node_selector is defined %}
             nodeSelector:
-              {{ node_selector.key }}: {{ node_selector.value }}
+              {{ _flightdeck_t7_io_phpapplication_spec.nodeSelector | to_nice_yaml(indent=2) | indent(8) }}
       {% endif %}
       {% if (_flightdeck_t7_io_phpapplication_spec is defined) and (_flightdeck_t7_io_phpapplication_spec.affinity is defined )%}
             affinity:
@@ -72,9 +72,9 @@
                     mountPath: "/config/php"
                   - name: "web-config"
                     mountPath: "/config/web"
-      {% if storage.size is defined %}
+      {% if persistence.enabled | default(false) == true %}
                   - name: "web-storage"
-                    mountPath: "{{ storage.path | default('/var/www/files') }}"
+                    mountPath: "{{ persistence.path | default('/var/www/files') }}"
       {% endif %}
       {% for _volume in volumes | default([]) %}
                   - name: "{{ 'vol-pvc-' + _volume.name }}"
@@ -145,10 +145,10 @@
               - name: "web-config"
                 configMap:
                   name: "{{ _phpapp_full_name }}-web-config"
-      {% if storage.size is defined %}
+      {% if persistence.enabled | default(false) == true %}
               - name: "web-storage"
                 persistentVolumeClaim:
-                  claimName: "{{ storage.name | default(_phpapp_full_name) }}"
+                  claimName: "{{ persistence.existing_claim | default(_default_volume_name) }}"
       {% endif %}
       {% for _volume in volumes | default([]) %}
               - name: "{{ 'vol-pvc-' + _volume.name }}"
@@ -168,3 +168,5 @@
     namespace: "{{ ansible_operator_meta.namespace }}"
     wait: true
     wait_timeout: 300
+  vars:
+    _default_volume_name: "{{ persistence.name | _phpapp_full_name }}"

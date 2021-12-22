@@ -11,12 +11,19 @@
 
 - name: Work with secrets
   include_tasks: 'secrets.yml'
+
 - name: Work with configmaps
   include_tasks: 'configmaps.yml'
+
 - name: Work with volumes
   include_tasks: 'volumes.yml'
+  when:
+    - persistence.enabled | default(false) == true
+    - persistent.existing_claim is not defined
+
 - name: Work with the deployments
   include_tasks: 'deployments.yml'
+
 - name: Work with the services
   include_tasks: 'services.yml'
 

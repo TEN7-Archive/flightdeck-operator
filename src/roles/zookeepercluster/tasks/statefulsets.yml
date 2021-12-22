@@ -1,0 +1,107 @@
+---
+- name: Create zookeeper statefulset
+  k8s:
+    definition: |
+      ---
+      apiVersion: apps/v1
+      kind: StatefulSet
+      metadata:
+        name: {{ _zookeeper_cluster_full_name }}
+        labels:
+          app.kubernetes.io/managed-by: "flightdeck-operator"
+          app.kubernetes.io/created-by: "controller-manager"
+          app.kubernetes.io/name: "ZookeeperCluster"
+          app.kubernetes.io/component: "clustering"
+          app.kubernetes.io/instance: "{{ ansible_operator_meta.name }}"
+          app.kubernetes.io/part-of: "{{ _zookeeper_cluster_full_name }}"
+          flightdeck.ten7.io/zookeepercluster: "{{ ansible_operator_meta.name }}"
+      spec:
+        selector:
+          matchLabels:
+            app.kubernetes.io/name: "ZookeeperCluster"
+            app.kubernetes.io/component: "clustering"
+            flightdeck.ten7.io/zookeepercluster: "{{ ansible_operator_meta.name }}"
+        serviceName: {{ _zookeeper_cluster_full_name }}
+        replicas: {{ replicas | default(3) }}
+        template:
+          metadata:
+            labels:
+              app.kubernetes.io/name: "ZookeeperCluster"
+              app.kubernetes.io/component: "clustering"
+              flightdeck.ten7.io/zookeepercluster: "{{ ansible_operator_meta.name }}"
+          spec:
+      {% if node_selector is defined %}
+            nodeSelector:
+              {{ _flightdeck_t7_io_zookeepercluster_spec.nodeSelector | to_nice_yaml(indent=2) | indent(8) }}
+      {% endif %}
+      {% if (_flightdeck_t7_io_zookeepercluster_spec is defined) and (_flightdeck_t7_io_zookeepercluster_spec.affinity is defined )%}
+            affinity:
+              {{ _flightdeck_t7_io_zookeepercluster_spec.affinity | to_nice_yaml(indent=2) | indent(8) }}
+      {% endif %}
+            securityContext:
+              fsGroup: 1000
+            containers:
+              - name: "zookeeper"
+                image: {{ image | default('ten7/flightdeck-zookeeper-3.7') }}
+                imagePullPolicy: Always
+      {% if _flightdeck_t7_io_zookeepercluster_spec.resources is defined %}
+                resources:
+                  {{ _flightdeck_t7_io_zookeepercluster_spec.resources | to_nice_yaml(indent=2) | indent(12) }}
+      {% endif %}
+                env:
+      {% if flightdeck_debug | default(false) %}
+                  - name: ANSIBLE_VERBOSITY
+                    value: "4"
+      {% endif %}
+      {% if flightdeck_skip_entrypoint | default(false) %}
+                  - name: FLIGHTDECK_SKIP_ENTRYPOINT
+                    value: "1"
+      {% endif %}
+                ports:
+                  - containerPort: {{ port | default('2181') }}
+                    name: "zk-client"
+                    protocol: TCP
+                  - containerPort: {{ quorum_port | default('2888') }}
+                    name: "zk-quorum"
+                    protocol: TCP
+                  - containerPort: {{ leader_port | default('3888') }}
+                    name: "zk-leader"
+                    protocol: TCP
+                volumeMounts:
+                  - name: "config"
+                    mountPath: "/config/zookeeper"
+      {% if persistence.enabled | default(false) == true %}
+                  - name: "data"
+                    mountPath: "{{ persistence.path | default('/data') }}"
+      {% endif %}
+            volumes:
+              - name: "config"
+                configMap:
+                  name: {{ _zookeeper_cluster_full_name }}
+      {% if (persistence.enabled | default(false) == true) and (persistence.existing_claim is not defined) %}
+        volumeClaimTemplates:
+          - metadata:
+              name: "data"
+              labels:
+                app.kubernetes.io/managed-by: "flightdeck-operator"
+                app.kubernetes.io/created-by: "controller-manager"
+                app.kubernetes.io/name: "ZookeeperCluster"
+                app.kubernetes.io/component: "clustering"
+                app.kubernetes.io/instance: "{{ ansible_operator_meta.name }}"
+                app.kubernetes.io/part-of: "{{ _zookeeper_cluster_full_name }}"
+                flightdeck.ten7.io/zookeepercluster: "{{ ansible_operator_meta.name }}"
+            spec:
+              accessModes:
+      {% for _accessMode in persistence.access_modes | default(['ReadWriteOnce']) %}
+                - {{ _accessMode }}
+      {% endfor %}
+      {% if persistence.storage_class is defined %}
+              storageClassName: "{{ persistence.storage_class }}"
+      {% endif %}
+              resources:
+                requests:
+                  storage: {{ persistence.size | default('1Gi') }}
+      {% endif %}
+    namespace: "{{ ansible_operator_meta.namespace }}"
+    wait: true
+    wait_timeout: 120

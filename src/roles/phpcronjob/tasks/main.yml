@@ -42,9 +42,9 @@
           spec:
             template:
               spec:
-      {% if (node_selector is defined) and (node_selector.key is defined) and (node_selector.value is defined) %}
+      {% if node_selector is defined %}
                 nodeSelector:
-                  {{ node_selector.key }}: {{ node_selector.value }}
+                  {{ _flightdeck_t7_io_phpcronjob_spec.nodeSelector | to_nice_yaml(indent=2) | indent(12) }}
       {% endif %}
       {% if (_flightdeck_t7_io_phpcronjob_spec is defined) and (_flightdeck_t7_io_phpcronjob_spec.affinity is defined )%}
                 affinity:
@@ -77,9 +77,9 @@
                         mountPath: "/config/php"
                       - name: "web-config"
                         mountPath: "/config/web"
-      {% if (_phpapp_def.spec.storage.size is defined) and (_phpapp_def.spec.storage.mode | default('') == 'ReadWriteMany') %}
+      {% if _phpapp_def.spec.persistence.enabled | default(false) == true %}
                       - name: "web-storage"
-                        mountPath: "{{ _phpapp_def.spec.storage.path | default('/var/www/files') }}"
+                        mountPath: "{{ _phpapp_def.spec.persistence.path | default('/var/www/files') }}"
       {% endif %}
       {% for _volume in _phpapp_def.spec.volumes | default([]) %}
                       - name: "{{ 'vol-pvc-' + _volume.name }}"
@@ -113,10 +113,10 @@
                   - name: "web-config"
                     configMap:
                       name: "{{ _phpapp_full_name }}-web-config"
-      {% if _phpapp_def.spec.storage.size is defined %}
+      {% if _phpapp_def.spec.persistence.enabled | default(false) == true %}
                   - name: "web-storage"
                     persistentVolumeClaim:
-                      claimName: "{{ _phpapp_full_name }}"
+                      claimName: "{{ _phpapp_def.spec.persistence.existingClaim | default(_default_volume_name) }}"
       {% endif %}
       {% for _volume in _phpapp_def.spec.volumes | default([]) %}
                   - name: "{{ 'vol-pvc-' + _volume.name }}"
@@ -137,3 +137,4 @@
   vars:
     _image: "{{ _phpapp_def.spec.image | default('ten7/flightdeck-web-7.4') }}"
     _image_pull_secrets: "{{ _phpapp_def.spec.image_pull_secrets | default([]) }}"
+    _default_volume_name: "{{ _phpapp_def.spec.persistence.name | _phpapp_full_name }}"

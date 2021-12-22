@@ -1,0 +1,55 @@
+---
+- name: Generate the cluster name
+  set_fact:
+    _solr_cluster_full_name: "{{ fullname_override | default('solrcluster-' + ansible_operator_meta.name) }}"
+
+- name: Check to see if the solr cluster statefulsets already exist
+  set_fact:
+    _first_time_setup: true
+  when:
+    - lookup('k8s', kind='secret', namespace=ansible_operator_meta.namespace, resource_name=_first_time_setup_name) | length < 1
+  vars:
+    _first_time_setup_name: "{{ 'setup-' + _solr_cluster_full_name }}"
+
+- name: Fetch the ZookeeperCluster namespace
+  set_fact:
+    _zookeeper_cluster_namespace: "{{ zookeeper_cluster.namespace | default(ansible_operator_meta.namespace) }}"
+
+- name: Fetch the ZookeeperCluster definition
+  set_fact:
+    _zkcluster_def: "{{ lookup('k8s', kind='ZookeeperCluster', namespace=_zookeeper_cluster_namespace, resource_name=zookeeper_cluster.name) }}"
+
+- fail:
+    msg: "Could not find requested ZookeeperCluster {{ zookeeper_cluster.name }}"
+  when:
+    - "(_zkcluster_def | default([])) | length < 1"
+
+- name: Generate the zookeeper cluster name
+  set_fact:
+    _zookeeper_cluster_full_name: "{{ _zkcluster_def.spec.fullnameOverride | default('zookeepercluster-' + zookeeper_cluster.name) }}"
+
+- name: Work with secrets
+  include_tasks: 'secrets.yml'
+- name: Work with configmaps
+  include_tasks: 'configmaps.yml'
+- name: Work with jobs
+  include_tasks: 'jobs.yml'
+- name: Work with statefulsets
+  include_tasks: 'statefulsets.yml'
+- name: Work with services
+  include_tasks: 'services.yml'
+- name: Work with the admin user
+  include_tasks: 'adminuser.yml'
+
+- name: Update the CRD status
+  operator_sdk.util.k8s_status:
+    api_version: flightdeck.t7.io/v1
+    kind: SolrCluster
+    name: "{{ ansible_operator_meta.name }}"
+    namespace: "{{ ansible_operator_meta.namespace }}"
+    status:
+      flightdeckOperator:
+        firstRun: true
+        status: true
+        deleting: false
+        message: "SolrCluster {{ ansible_operator_meta.name }} ready."

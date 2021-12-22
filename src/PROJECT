@@ -53,4 +53,32 @@ resources:
   group: flightdeck
   kind: PhpCronjob
   version: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: t7.io
+  group: flightdeck
+  kind: SolrCluster
+  version: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: t7.io
+  group: flightdeck
+  kind: SolrCore
+  version: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: t7.io
+  group: flightdeck
+  kind: ZookeeperCluster
+  version: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: t7.io
+  group: flightdeck
+  kind: SolrConfigset
+  version: v1
 version: "3"

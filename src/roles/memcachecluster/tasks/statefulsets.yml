@@ -30,9 +30,9 @@
               app.kubernetes.io/component: "memcache"
               flightdeck.ten7.io/memcachecluster: "{{ ansible_operator_meta.name }}"
           spec:
-      {% if (node_selector is defined) and (node_selector.key is defined) and (node_selector.value is defined) %}
+      {% if node_selector is defined %}
             nodeSelector:
-              {{ node_selector.key }}: {{ node_selector.value }}
+              {{ _flightdeck_t7_io_memcachecluster_spec.nodeSelector | to_nice_yaml(indent=2) | indent(8) }}
       {% endif %}
       {% if (_flightdeck_t7_io_memcachecluster_spec is defined) and (_flightdeck_t7_io_memcachecluster_spec.affinity is defined )%}
             affinity:

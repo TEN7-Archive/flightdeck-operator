@@ -1,0 +1,121 @@
+---
+# Solr's security.json isn't complicated, but there's no way to reproduce
+# the sha256+hash bas64'ed password hash outside of Solr itself. The format is
+# unique and incompatible with Passlib.
+#
+# So instead, we set the default user, solr/SolrRocks, then add a new admin
+# user, then delete the widely known login.
+
+- name: Generate the solr service url
+  set_fact:
+    _solr_cluster_url: "http://{{ _solr_cluster_full_name }}.{{ ansible_operator_meta.namespace }}.svc.cluster.local:{{ port | default('8983') }}"
+
+# We intentionally accept a 401 here, in case the default user has already
+# been removed and we're on a reconcile run.
+- name: Get a list of users
+  uri:
+    url: "{{ _solr_cluster_url }}/api/cluster/security/authentication"
+    force_basic_auth: true
+    user: "solr"
+    password: "SolrRocks"
+    method: GET
+    headers:
+      Content-Type: "application/json"
+    return_content: yes
+    status_code:
+      - 200
+      - 401
+  register: _user_list
+  until: (_user_list.status == 200) or (_user_list.status == 401)
+  retries: 3
+  delay: 30
+
+# If we got a 401, we can skip everything else, since first time set up has
+# already be completed
+
+- name: Create the solr admin user
+  uri:
+    url: "{{ _solr_cluster_url }}/api/cluster/security/authentication"
+    force_basic_auth: true
+    user: "solr"
+    password: "SolrRocks"
+    method: POST
+    headers:
+      Content-Type: "application/json"
+    return_content: yes
+    status_code:
+      - 200
+      - 201
+    body_format: json
+    body: |
+      {
+        "set-user": {
+          "{{ _solr_admin_user }}": "{{ _solr_admin_password | regex_replace('\\', '\\\\') | regex_replace('\"', '\\\"') }}"
+        }
+      }
+  register: _solr_create
+  when:
+    - _user_list.json.authentication.credentials[_solr_admin_user] | default('') == ''
+    - _user_list.status != 401
+  until: (_solr_create.status == 200) or (_solr_create.status == 201)
+  retries: 3
+  delay: 30
+
+- name: Grant the admin user admin permissions
+  uri:
+    url: "{{ _solr_cluster_url }}/solr/admin/authorization"
+    force_basic_auth: true
+    user: "solr"
+    password: "SolrRocks"
+    method: POST
+    headers:
+      Content-Type: "application/json"
+    return_content: yes
+    status_code:
+      - 200
+      - 201
+    body_format: json
+    body: |
+      {
+        "set-user-role": {
+          "{{ _solr_admin_user }}": [
+            "admin"
+          ]
+        }
+      }
+  register: _solr_grant
+  when:
+    - _user_list.json.authentication.credentials[_solr_admin_user] | default('') == ''
+    - _user_list.status != 401
+  until: (_solr_grant.status == 200) or (_solr_grant.status == 201)
+  retries: 3
+  delay: 30
+
+
+- name: Delete the default solr user
+  uri:
+    url: "{{ _solr_cluster_url }}/solr/admin/authentication"
+    force_basic_auth: true
+    user: "{{ _solr_admin_user }}"
+    password: "{{ _solr_admin_password }}"
+    method: POST
+    headers:  
+      Content-Type: "application/json"
+    return_content: yes
+    status_code:
+      - 200
+      - 201
+    body_format: json
+    body: |
+      {
+        "delete-user": [
+          "solr"
+        ]
+      }
+  register: _solr_delete
+  when:
+    - _user_list.json.authentication.credentials[_solr_admin_user] | default('') == ''
+    - _user_list.status != 401
+  until: (_solr_delete.status == 200) or (_solr_delete.status == 201)
+  retries: 3
+  delay: 30

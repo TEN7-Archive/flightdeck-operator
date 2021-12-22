@@ -29,14 +29,15 @@
               app.kubernetes.io/component: "mysql"
               flightdeck.ten7.io/mysqlcluster: "{{ ansible_operator_meta.name }}"
           spec:
-      {% if (node_selector is defined) and (node_selector.key is defined) and (node_selector.value is defined) %}
+      {% if node_selector is defined %}
             nodeSelector:
-              {{ node_selector.key }}: {{ node_selector.value }}
+              {{ _flightdeck_t7_io_mysqlcluster_spec.nodeSelector | to_nice_yaml(indent=2) | indent(8) }}
       {% endif %}
       {% if (_flightdeck_t7_io_mysqlcluster_spec is defined) and (_flightdeck_t7_io_mysqlcluster_spec.affinity is defined )%}
             affinity:
               {{ _flightdeck_t7_io_mysqlcluster_spec.affinity | to_nice_yaml(indent=2) | indent(8) }}
       {% endif %}
+      {% if persistence.enabled | default(false) == true %}
             initContainers:
               # The PVC is owned by root by default. This means that a non-root container
               # cannot create directories. So, we change the ownership to the UID/GID of
@@ -50,7 +51,7 @@
                 volumeMounts:
                   - mountPath: /var/lib/mysql
                     name: vol-mysql
-                    subPath: dbdata
+      {% endif %}
             containers:
               - name: "db"
                 image: {{ image | default('ten7/flightdeck-db-10.4:develop') }}
@@ -64,9 +65,10 @@
                     name: mysql
                     protocol: TCP
                 volumeMounts:
+      {% if persistence.enabled | default(false) == true %}
                   - mountPath: /var/lib/mysql
                     name: vol-mysql
-                    subPath: dbdata
+      {% endif %}
                   - name: "vol-secret-mysql-root"
                     mountPath: "/config/mysql-root"
                   - name: vol-secret-operator
@@ -76,9 +78,11 @@
                   - name: "vol-config-flight-deck-db"
                     mountPath: "/config/mysql"
             volumes:
+      {% if persistence.enabled | default(false) == true %}
               - name: vol-mysql
                 persistentVolumeClaim:
-                  claimName: mysql
+                  claimName: "{{ persistence.existing_claim | default(_default_volume_name) }}"
+      {% endif %}
               - name: vol-secret-mysql-root
                 secret:
                   secretName: {{ _mysql_root_secret_name }}
@@ -91,9 +95,17 @@
               - name: vol-config-flight-deck-db
                 configMap:
                   name: {{ _mysql_cluster_full_name }}-config
+      {% if (persistence.enabled | default(false) == true) and (persistence.existing_claim is not defined) %}
         volumeClaimTemplates:
           - metadata:
-              name: vol-mysql
+              name: "{{ _default_volume_name }}"
+              labels:
+                app.kubernetes.io/managed-by: "flightdeck-operator"
+                app.kubernetes.io/created-by: "controller-manager"
+                app.kubernetes.io/name: "MySQLCluster"
+                app.kubernetes.io/instance: "{{ ansible_operator_meta.name }}"
+                app.kubernetes.io/part-of: "{{ _mysql_cluster_full_name }}"
+                flightdeck.ten7.io/mysqlcluster: "{{ ansible_operator_meta.name }}"
             spec:
               accessModes:
                 - {{ access_mode | default('ReadWriteOnce') }}
@@ -103,9 +115,13 @@
               resources:
                 requests:
                   storage: {{ size | default('10Gi') }}
+      {% endif %}
     namespace: "{{ ansible_operator_meta.namespace }}"
     wait: true
     wait_timeout: 120
+  vars:
+    _default_volume_name: "{{ persistence.name | _mysql_cluster_full_name }}"
+
 # The wait parameter above doesn't seem to work because StatefulSet.spec.status
 # doesn't have any conditions which Ansible requires. So we hack around it.
 - name: Wait for statefulset pods to be ready

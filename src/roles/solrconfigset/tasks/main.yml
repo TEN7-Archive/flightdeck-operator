@@ -1,0 +1,151 @@
+---
+- name: Generate the configset name
+  set_fact:
+    _configset_full_name: "{{ fullname_override | default('solrconfigset-' + ansible_operator_meta.name) }}"
+
+- name: Generate the SolrCluster namespace
+  set_fact:
+    _solrcluster_namespace: "{{ solr_cluster.namespace | default(ansible_operator_meta.namespace) }}"
+
+- name: Fetch the SolrCluster definition
+  set_fact:
+    _solrcluster_def: "{{ lookup('k8s', kind='SolrCluster', namespace=_solrcluster_namespace, resource_name=solr_cluster.name) }}"
+
+- fail:
+    msg: "Could not find requested SolrCluster {{ solr_cluster.name }}"
+  when:
+    - "(_solrcluster_def | default([])) | length < 1"
+
+- name: Generate the solr cluster name
+  set_fact:
+    _solr_cluster_full_name: "{{ _solrcluster_def.spec.fullnameOverride | default('solrcluster-' + solr_cluster.name) }}"
+
+- name: Generate the solr service url
+  set_fact:
+    _solr_cluster_url: "http://{{ _solr_cluster_full_name }}.{{ _solrcluster_namespace }}.svc.cluster.local:{{ _solrcluster_def.spec.port | default('8983') }}"
+
+- name: Generate the solr admin secret name
+  set_fact:
+    _solr_admin_secret_name: "{{ _solrcluster_def.spec.solrAdmin.secret | default(_solr_cluster_full_name + '-admin') }}"
+
+- name: Fetch the solr admin secret
+  set_fact:
+    _solr_admin_secret_def: "{{ lookup('k8s', kind='secret', namespace=ansible_operator_meta.namespace, resource_name=_solr_admin_secret_name) }}"
+
+- fail:
+    msg: "Could not find requested secret {{ _solr_admin_secret_name }}"
+  when:
+    - "(_solr_admin_secret_def | default([])) | length < 1"
+
+- name: Extract the solr admin credentials
+  set_fact:
+    _solr_admin_user: "{{ _solr_admin_secret_def.data['user'] | b64decode }}"
+    _solr_admin_password: "{{ _solr_admin_secret_def.data['password'] | b64decode }}"
+
+- name: Fetch the ConfigMap definition
+  set_fact:
+    _configmap_def: "{{ lookup('k8s', kind='configmap', namespace=ansible_operator_meta.namespace, resource_name=config_map) }}"
+
+- fail:
+    msg: "Could not find requested ConfigMap {{ config_map }}"
+  when:
+    - "(_configmap_def | default([])) | length < 1"
+
+- name: Create temp directory for the configfiles
+  tempfile:
+    state: directory
+    prefix: "solrconfigset-"
+  register: _configset_tempdir
+  notify: "delete configset tempdir"
+  changed_when: false
+
+- name: Write out the files from data
+  copy:
+    content: "{{ item.value }}"
+    dest: "{{ _configset_tempdir.path }}/{{ item.key }}"
+  loop: "{{ _configmap_def.data | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+  notify: "delete configset tempdir"
+  changed_when: false
+  when:
+    - _configmap_def.data | length > 0
+
+- name: Create temp file for the configset archive
+  tempfile:
+    state: file
+    prefix: "solrconfigset-archive-"
+    suffix: ".zip"
+  register: _configset_archive
+  notify: "delete configset archive"
+  changed_when: false
+
+- name: Archive the configset
+  archive:
+    path: "{{ _configset_tempdir.path }}/*"
+    dest: "{{ _configset_archive.path }}"
+    format: zip
+  changed_when: false
+
+- name: Upload the configset archive
+  uri:
+    url: "{{ _solr_cluster_url }}/api/cluster/configs/{{ ansible_operator_meta.name }}?overwrite=true"
+    force_basic_auth: true
+    user: "{{ _solr_admin_user }}"
+    password: "{{ _solr_admin_password }}"
+    method: POST
+    headers:
+      Content-Type: "application/octet-stream"
+    src: "{{ _configset_archive.path }}"
+
+- name: Get a list of existing configsets
+  uri:
+    url: "{{ _solr_cluster_url }}/api/cluster/configs?omitHeader=true"
+    force_basic_auth: true
+    user: "{{ _solr_admin_user }}"
+    password: "{{ _solr_admin_password }}"
+    method: GET
+    return_content: yes
+    status_code:
+      - 200
+  register: _collection_list
+  until: _collection_list.status == 200
+  retries: 3
+  delay: 30
+
+- name: Create configset if it doesn't exist
+  uri:
+    url: "\
+      {{ _solr_cluster_url }}/solr/admin/configs\
+      ?action=CREATE\
+      &name={{ ansible_operator_meta.name }}\
+      &baseConfigSet=_default\
+      &configSetProp.immutable=false\
+      &wt=xml\
+      &omitHeader=true"
+    force_basic_auth: true
+    user: "{{ _solr_admin_user }}"
+    password: "{{ _solr_admin_password }}"
+    method: GET
+    return_content: yes
+    status_code:
+      - 200
+  register: _configset_create
+  when:
+    - ansible_operator_meta.name not in _collection_list.json.configSets | default([])
+  until: _configset_create.status == 200
+  retries: 3
+  delay: 30
+
+- name: Update the CRD status
+  operator_sdk.util.k8s_status:
+    api_version: flightdeck.t7.io/v1
+    kind: SolrConfigset
+    name: "{{ ansible_operator_meta.name }}"
+    namespace: "{{ ansible_operator_meta.namespace }}"
+    status:
+      flightdeckOperator:
+        firstRun: true
+        status: true
+        deleting: false
+        message: "SolrConfigset {{ ansible_operator_meta.name }} ready."

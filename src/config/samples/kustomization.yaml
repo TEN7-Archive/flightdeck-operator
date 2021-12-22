@@ -8,4 +8,8 @@ resources:
 - flightdeck_v1_htpasswd.yaml
 - flightdeck_v1_phproute.yaml
 - flightdeck_v1_phpcronjob.yaml
+- flightdeck_v1_solrcluster.yaml
+- flightdeck_v1_solrcore.yaml
+- flightdeck_v1_zookeepercluster.yaml
+- flightdeck_v1_solrconfigset.yaml
 # +kubebuilder:scaffold:manifestskustomizesamples

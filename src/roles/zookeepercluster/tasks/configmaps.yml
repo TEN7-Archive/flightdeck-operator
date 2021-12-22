@@ -1,0 +1,37 @@
+---
+- name: Create zookeeper configmap
+  k8s:
+    definition: |
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: {{ _zookeeper_cluster_full_name }}
+        labels:
+          app.kubernetes.io/managed-by: "flightdeck-operator"
+          app.kubernetes.io/created-by: "controller-manager"
+          flightdeck.ten7.io/zookeepercluster: "{{ ansible_operator_meta.name }}"
+      data:
+        flightdeck-zookeeper.yml: |
+          flightdeck_zookeeper:
+      {% if flightdeck_debug | default(false) %}
+            flightdeck_debug: yes
+      {% endif %}
+            tickTime: "1000"
+            dataDir: "{{ persistence.path | default('/data') }}"
+            clientPort: "{{ port | default('2181') }}"
+            initLimit: "{{ init_limit | default('120') }}"
+            syncLimit: "{{ sync_limit | default('120') }}"
+            myIdFromHostname: true
+            servers:
+      {% for i in range(replicas | default(3)) %}
+              - host: "{{ _zookeeper_cluster_full_name }}-{{ i }}.{{ _zookeeper_cluster_full_name }}.{{ ansible_operator_meta.namespace }}.svc.cluster.local"
+                quorumPort: "{{ quorum_port | default('2888') }}"
+                leaderPort: "{{ leader_port | default('3888') }}"
+      {% endfor %}
+      {% if autopurge.state | default(true) == true %}
+            autopurge:
+              state: yes
+              snapRetainCount: "{{ autopurge.snap_retain_count | default('3') }}"
+              purgeInterval: "{{autopurge. purge_interval | default('24') }}"
+      {% endif %}
+    namespace: "{{ ansible_operator_meta.namespace }}"
