@@ -214,6 +214,62 @@ rules:
   - patch
   - update
   - watch
+- apiGroups:
+  - flightdeck.t7.io
+  resources:
+  - solrclusters
+  - solrclusters/status
+  - solrclusters/finalizers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - flightdeck.t7.io
+  resources:
+  - solrcores
+  - solrcores/status
+  - solrcores/finalizers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - flightdeck.t7.io
+  resources:
+  - zookeeperclusters
+  - zookeeperclusters/status
+  - zookeeperclusters/finalizers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - flightdeck.t7.io
+  resources:
+  - solrconfigsets
+  - solrconfigsets/status
+  - solrconfigsets/finalizers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
