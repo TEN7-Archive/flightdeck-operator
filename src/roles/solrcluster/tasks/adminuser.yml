@@ -91,6 +91,33 @@
   retries: 3
   delay: 30
 
+- name: Remove the solr user roles
+  uri:
+    url: "{{ _solr_cluster_url }}/solr/admin/authorization"
+    force_basic_auth: true
+    user: "{{ _solr_admin_user }}"
+    password: "{{ _solr_admin_password }}"
+    method: POST
+    headers:
+      Content-Type: "application/json"
+    return_content: yes
+    status_code:
+      - 200
+      - 201
+    body_format: json
+    body: |
+      {
+        "set-user-role": {
+          "solr": null
+        }
+      }
+  register: _solr_remove_roles
+  when:
+    - _user_list.json.authentication.credentials[_solr_admin_user] | default('') == ''
+    - _user_list.status != 401
+  until: (_solr_remove_roles.status == 200) or (_solr_remove_roles.status == 201)
+  retries: 3
+  delay: 30
 
 - name: Delete the default solr user
   uri:
@@ -99,7 +126,7 @@
     user: "{{ _solr_admin_user }}"
     password: "{{ _solr_admin_password }}"
     method: POST
-    headers:  
+    headers:
       Content-Type: "application/json"
     return_content: yes
     status_code:

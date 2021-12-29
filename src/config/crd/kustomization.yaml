@@ -11,7 +11,9 @@ resources:
 - bases/flightdeck.t7.io_phproutes.yaml
 - bases/flightdeck.t7.io_phpcronjobs.yaml
 - bases/flightdeck.t7.io_solrclusters.yaml
-- bases/flightdeck.t7.io_solrcores.yaml
+- bases/flightdeck.t7.io_solrcollections.yaml
 - bases/flightdeck.t7.io_zookeeperclusters.yaml
 - bases/flightdeck.t7.io_solrconfigsets.yaml
+- bases/flightdeck.t7.io_solrroles.yaml
+- bases/flightdeck.t7.io_solrusers.yaml
 # +kubebuilder:scaffold:crdkustomizeresource

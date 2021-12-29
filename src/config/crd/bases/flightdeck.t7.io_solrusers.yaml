@@ -2,20 +2,20 @@
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: solrcores.flightdeck.t7.io
+  name: solrusers.flightdeck.t7.io
 spec:
   group: flightdeck.t7.io
   names:
-    kind: SolrCore
-    listKind: SolrCoreList
-    plural: solrcores
-    singular: solrcore
+    kind: SolrUser
+    listKind: SolrUserList
+    plural: solrusers
+    singular: solruser
   scope: Namespaced
   versions:
   - name: v1
     schema:
       openAPIV3Schema:
-        description: SolrCore is the Schema for the solrcores API
+        description: SolrUser is the Schema for the solrusers API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -30,11 +30,11 @@ spec:
           metadata:
             type: object
           spec:
-            description: Spec defines the desired state of SolrCore
+            description: Spec defines the desired state of SolrUser
             type: object
             x-kubernetes-preserve-unknown-fields: true
           status:
-            description: Status defines the observed state of SolrCore
+            description: Status defines the observed state of SolrUser
             type: object
             x-kubernetes-preserve-unknown-fields: true
         type: object

@@ -2,7 +2,7 @@
 - name: Update the CRD status
   operator_sdk.util.k8s_status:
     api_version: flightdeck.t7.io/v1
-    kind: SolrCore
+    kind: SolrCollection
     name: "{{ ansible_operator_meta.name }}"
     namespace: "{{ ansible_operator_meta.namespace }}"
     status:
@@ -10,7 +10,7 @@
         firstRun: true
         status: false
         deleting: true
-        message: "SolrCore {{ ansible_operator_meta.name }} is being deleted."
+        message: "SolrCollection {{ ansible_operator_meta.name }} is being deleted."
 
 - name: Generate the SolrCluster namespace
   set_fact:

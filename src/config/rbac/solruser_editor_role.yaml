@@ -1,20 +1,24 @@
-# permissions for end users to view solrcores.
+# permissions for end users to edit solrusers.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: solrcore-viewer-role
+  name: solruser-editor-role
 rules:
 - apiGroups:
   - flightdeck.t7.io
   resources:
-  - solrcores
+  - solrusers
   verbs:
+  - create
+  - delete
   - get
   - list
+  - patch
+  - update
   - watch
 - apiGroups:
   - flightdeck.t7.io
   resources:
-  - solrcores/status
+  - solrusers/status
   verbs:
   - get

@@ -1,7 +1,7 @@
 apiVersion: flightdeck.t7.io/v1
-kind: SolrCore
+kind: SolrRole
 metadata:
-  name: solrcore-sample
+  name: solrrole-sample
 spec:
   # Add fields here
   foo: bar

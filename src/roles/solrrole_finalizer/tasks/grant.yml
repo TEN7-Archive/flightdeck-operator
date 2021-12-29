@@ -1,0 +1,34 @@
+---
+- name: Get grants only for the current collection and permission
+  set_fact:
+    _collection_grant_for_perm: "{{ _permission_list.json.authorization.permissions \
+      | selectattr('collection','defined') \
+      | selectattr('collection', '==', _collection) \
+      | selectattr('name','defined') \
+      | selectattr('name', '==', _permission) \
+      | list }}"
+
+- name: Delete grants
+  uri:
+    url: "{{ _solr_cluster_url }}/solr/admin/authorization"
+    force_basic_auth: true
+    user: "{{ _solr_admin_user }}"
+    password: "{{ _solr_admin_password }}"
+    method: POST
+    headers:
+      Content-Type: "application/json"
+    return_content: yes
+    status_code:
+      - 200
+      - 201
+    body_format: json
+    body: |
+      {
+        "delete-permission": "{{ _grant.index }}"
+      }
+  loop: "{{ _collection_grant_for_perm | default([]) }}"
+  loop_control:
+    loop_var: _grant
+    label: "{{ _permission }} for {{ _collection }} at {{ _grant.index }}"
+  when:
+    - _grant.index is defined

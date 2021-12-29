@@ -1,0 +1,20 @@
+# permissions for end users to view solrusers.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: solruser-viewer-role
+rules:
+- apiGroups:
+  - flightdeck.t7.io
+  resources:
+  - solrusers
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - flightdeck.t7.io
+  resources:
+  - solrusers/status
+  verbs:
+  - get

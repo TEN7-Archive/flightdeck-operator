@@ -38,66 +38,19 @@
     _solr_admin_user: "{{ _solr_admin_secret_def.data['user'] | b64decode }}"
     _solr_admin_password: "{{ _solr_admin_secret_def.data['password'] | b64decode }}"
 
-- name: Get a list of existing collections
-  uri:
-    url: "{{ _solr_cluster_url }}/solr/admin/collections?action=LIST&omitHeader=true"
-    method: GET
-    force_basic_auth: true
-    user: "{{ _solr_admin_user }}"
-    password: "{{ _solr_admin_password }}"
-    return_content: yes
-    status_code:
-      - 200
-  register: _collection_list
-  until: _collection_list.status == 200
-  retries: 3
-  delay: 30
+- name: Generate the solr user name
+  set_fact:
+    _solr_user_full_name: "{{ fullname_override | default(ansible_operator_meta.name + '-solruser') }}"
 
-- name: Create collection if it doesn't exist
-  uri:
-    url: "\
-      {{ _solr_cluster_url }}/solr/admin/collections\
-      ?action=CREATE\
-      &name={{ ansible_operator_meta.name }}\
-      &collection.configName={{ config_set.name }}\
-      &replicationFactor=1\
-      &numShards=1\
-      &wt=xml"
-    method: GET
-    force_basic_auth: true
-    user: "{{ _solr_admin_user }}"
-    password: "{{ _solr_admin_password }}"
-    return_content: yes
-    status_code:
-      - 200
-  register: _collection_create
-  when:
-    - ansible_operator_meta.name not in _collection_list.json.collections | default([])
-  until: (_collection_list.status == 200) or (_collection_list.status == 400)
-  retries: 3
-  delay: 30
-
-- name: Reload collection if it does exist
-  uri:
-    url: "{{ _solr_cluster_url }}/solr/admin/collections?action=RELOAD&name={{ ansible_operator_meta.name }}&wt=xml"
-    method: GET
-    force_basic_auth: true
-    user: "{{ _solr_admin_user }}"
-    password: "{{ _solr_admin_password }}"
-    return_content: yes
-    status_code:
-      - 200
-  register: _collection_reload
-  when:
-    - ansible_operator_meta.name in _collection_list.json.collections | default([])
-  until: (_collection_list.status == 200) or (_collection_list.status == 400)
-  retries: 3
-  delay: 30
+- name: Work with secrets
+  include_tasks: 'secrets.yml'
+- name: Work with users
+  include_tasks: 'users.yml'
 
 - name: Update the CRD status
   operator_sdk.util.k8s_status:
     api_version: flightdeck.t7.io/v1
-    kind: SolrCore
+    kind: SolrUser
     name: "{{ ansible_operator_meta.name }}"
     namespace: "{{ ansible_operator_meta.namespace }}"
     status:
@@ -105,4 +58,4 @@
         firstRun: true
         status: true
         deleting: false
-        message: "SolrCore {{ ansible_operator_meta.name }} ready."
+        message: "SolrUser {{ ansible_operator_meta.name }} ready."

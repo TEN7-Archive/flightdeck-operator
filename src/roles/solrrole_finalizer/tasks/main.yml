@@ -1,0 +1,80 @@
+---
+- name: Update the CRD status
+  operator_sdk.util.k8s_status:
+    api_version: flightdeck.t7.io/v1
+    kind: SolrRole
+    name: "{{ ansible_operator_meta.name }}"
+    namespace: "{{ ansible_operator_meta.namespace }}"
+    status:
+      flightdeckOperator:
+        firstRun: true
+        status: false
+        deleting: true
+        message: "SolrRole {{ ansible_operator_meta.name }} is being deleted."
+
+- name: Generate the SolrCluster namespace
+  set_fact:
+    _solrcluster_namespace: "{{ solr_cluster.namespace | default(ansible_operator_meta.namespace) }}"
+
+- name: Fetch the SolrCluster definition
+  set_fact:
+    _solrcluster_def: "{{ lookup('k8s', kind='SolrCluster', namespace=_solrcluster_namespace, resource_name=solr_cluster.name) }}"
+
+- fail:
+    msg: "Could not find requested SolrCluster {{ solr_cluster.name }}"
+  when:
+    - "(_solrcluster_def | default([])) | length < 1"
+
+- name: Generate the solr cluster name
+  set_fact:
+    _solr_cluster_full_name: "{{ _solrcluster_def.spec.fullnameOverride | default('solrcluster-' + solr_cluster.name) }}"
+
+- name: Generate the solr service url
+  set_fact:
+    _solr_cluster_url: "http://{{ _solr_cluster_full_name }}.{{ _solrcluster_namespace }}.svc.cluster.local:{{ _solrcluster_def.spec.port | default('8983') }}"
+
+- name: Generate the solr admin secret name
+  set_fact:
+    _solr_admin_secret_name: "{{ _solrcluster_def.spec.solrAdmin.secret | default(_solr_cluster_full_name + '-admin') }}"
+
+- name: Fetch the solr admin secret
+  set_fact:
+    _solr_admin_secret_def: "{{ lookup('k8s', kind='secret', namespace=ansible_operator_meta.namespace, resource_name=_solr_admin_secret_name) }}"
+
+- fail:
+    msg: "Could not find requested secret {{ _solr_admin_secret_name }}"
+  when:
+    - "(_solr_admin_secret_def | default([])) | length < 1"
+
+- name: Extract the solr admin credentials
+  set_fact:
+    _solr_admin_user: "{{ _solr_admin_secret_def.data['user'] | b64decode }}"
+    _solr_admin_password: "{{ _solr_admin_secret_def.data['password'] | b64decode }}"
+
+- name: Get all permissions
+  uri:
+    url: "{{ _solr_cluster_url }}/solr/admin/authorization"
+    force_basic_auth: true
+    user: "{{ _solr_admin_user }}"
+    password: "{{ _solr_admin_password }}"
+    method: GET
+    headers:
+      Content-Type: "application/json"
+    return_content: yes
+    status_code:
+      - 200
+      - 201
+  register: _permission_list
+  until: _permission_list.status == 200
+  retries: 3
+  delay: 30
+
+- name: Work with collection permissions
+  include_tasks: "grant.yml"
+  with_subelements:
+    - "{{ collections | default([]) }}"
+    - permissions
+    - skip_missing: yes
+  vars:
+    _collection: "{{ item.0.name }}"
+    _permission: "{{ item.1 }}"

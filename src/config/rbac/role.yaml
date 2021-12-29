@@ -219,14 +219,14 @@ rules:
       - update
       - watch
   ##
-  ## Rules for flightdeck.t7.io/v1, Kind: SolrCore
+  ## Rules for flightdeck.t7.io/v1, Kind: SolrCollection
   ##
   - apiGroups:
       - flightdeck.t7.io
     resources:
-      - solrcores
-      - solrcores/status
-      - solrcores/finalizers
+      - solrcollections
+      - solrcollections/status
+      - solrcollections/finalizers
     verbs:
       - create
       - delete
@@ -261,6 +261,40 @@ rules:
       - solrconfigsets
       - solrconfigsets/status
       - solrconfigsets/finalizers
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  ##
+  ## Rules for flightdeck.t7.io/v1, Kind: SolrRole
+  ##
+  - apiGroups:
+      - flightdeck.t7.io
+    resources:
+      - solrroles
+      - solrroles/status
+      - solrroles/finalizers
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  ##
+  ## Rules for flightdeck.t7.io/v1, Kind: SolrUser
+  ##
+  - apiGroups:
+      - flightdeck.t7.io
+    resources:
+      - solrusers
+      - solrusers/status
+      - solrusers/finalizers
     verbs:
       - create
       - delete

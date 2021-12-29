@@ -1,0 +1,24 @@
+# permissions for end users to edit solrcollections.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: solrcollection-editor-role
+rules:
+- apiGroups:
+  - flightdeck.t7.io
+  resources:
+  - solrcollections
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - flightdeck.t7.io
+  resources:
+  - solrcollections/status
+  verbs:
+  - get

@@ -1,0 +1,24 @@
+# permissions for end users to edit solrroles.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: solrrole-editor-role
+rules:
+- apiGroups:
+  - flightdeck.t7.io
+  resources:
+  - solrroles
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - flightdeck.t7.io
+  resources:
+  - solrroles/status
+  verbs:
+  - get

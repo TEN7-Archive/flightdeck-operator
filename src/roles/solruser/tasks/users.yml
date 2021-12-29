@@ -1,0 +1,77 @@
+---
+- name: Get a list of users
+  uri:
+    url: "{{ _solr_cluster_url }}/api/cluster/security/authentication"
+    force_basic_auth: true
+    user: "{{ _solr_admin_user }}"
+    password: "{{ _solr_admin_password }}"
+    method: GET
+    headers:
+      Content-Type: "application/json"
+    return_content: yes
+    status_code:
+      - 200
+  register: _user_list
+  until: _user_list.status == 200
+  retries: 3
+  delay: 30
+
+- name: Create the user
+  uri:
+    url: "{{ _solr_cluster_url }}/api/cluster/security/authentication"
+    force_basic_auth: true
+    user: "{{ _solr_admin_user }}"
+    password: "{{ _solr_admin_password }}"
+    method: POST
+    headers:
+      Content-Type: "application/json"
+    return_content: yes
+    status_code:
+      - 200
+      - 201
+    body_format: json
+    body: |
+      {
+        "set-user": {
+          "{{ ansible_operator_meta.name }}": "{{ _solr_user_password | regex_replace('\\', '\\\\') | regex_replace('\"', '\\\"') }}"
+        }
+      }
+  register: _solr_create
+  when:
+    - _user_list.json.authentication.credentials[ansible_operator_meta.name] | default('') == ''
+    - _user_list.status != 401
+  until: (_solr_create.status == 200) or (_solr_create.status == 201)
+  retries: 3
+  delay: 30
+
+- name: Add the user to specified roles
+  uri:
+    url: "{{ _solr_cluster_url }}/solr/admin/authorization"
+    force_basic_auth: true
+    user: "{{ _solr_admin_user }}"
+    password: "{{ _solr_admin_password }}"
+    method: POST
+    headers:
+      Content-Type: "application/json"
+    return_content: yes
+    status_code:
+      - 200
+      - 201
+    body_format: json
+    body: |
+      {
+        "set-user-role": {
+          "{{ ansible_operator_meta.name }}": [
+      {% for _role in roles %}
+            "{{ _role }}"{% if not loop.last %},{% endif %}
+      {% endfor %}
+          ]
+        }
+      }
+  register: _solr_grant
+  when:
+    - _user_list.json.authentication.credentials[ansible_operator_meta.name] | default('') == ''
+    - _user_list.status != 401
+  until: (_solr_grant.status == 200) or (_solr_grant.status == 201)
+  retries: 3
+  delay: 30

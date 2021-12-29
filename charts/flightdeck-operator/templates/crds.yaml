@@ -448,20 +448,20 @@ spec:
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: solrcores.flightdeck.t7.io
+  name: solrcollections.flightdeck.t7.io
 spec:
   group: flightdeck.t7.io
   names:
-    kind: SolrCore
-    listKind: SolrCoreList
-    plural: solrcores
-    singular: solrcore
+    kind: SolrCollection
+    listKind: SolrCollectionList
+    plural: solrcollections
+    singular: solrcollection
   scope: Namespaced
   versions:
   - name: v1
     schema:
       openAPIV3Schema:
-        description: SolrCore is the Schema for the solrcores API
+        description: SolrCollection is the Schema for the solrcollections API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -476,11 +476,99 @@ spec:
           metadata:
             type: object
           spec:
-            description: Spec defines the desired state of SolrCore
+            description: Spec defines the desired state of SolrCollection
             type: object
             x-kubernetes-preserve-unknown-fields: true
           status:
-            description: Status defines the observed state of SolrCore
+            description: Status defines the observed state of SolrCollection
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: solrroles.flightdeck.t7.io
+spec:
+  group: flightdeck.t7.io
+  names:
+    kind: SolrRole
+    listKind: SolrRoleList
+    plural: solrroles
+    singular: solrrole
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: SolrRole is the Schema for the solrroles API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: Spec defines the desired state of SolrRole
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+          status:
+            description: Status defines the observed state of SolrRole
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: solrusers.flightdeck.t7.io
+spec:
+  group: flightdeck.t7.io
+  names:
+    kind: SolrUser
+    listKind: SolrUserList
+    plural: solrusers
+    singular: solruser
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: SolrUser is the Schema for the solrusers API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: Spec defines the desired state of SolrUser
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+          status:
+            description: Status defines the observed state of SolrUser
             type: object
             x-kubernetes-preserve-unknown-fields: true
         type: object

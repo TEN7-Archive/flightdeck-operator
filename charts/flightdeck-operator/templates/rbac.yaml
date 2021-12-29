@@ -231,9 +231,9 @@ rules:
 - apiGroups:
   - flightdeck.t7.io
   resources:
-  - solrcores
-  - solrcores/status
-  - solrcores/finalizers
+  - solrcollections
+  - solrcollections/status
+  - solrcollections/finalizers
   verbs:
   - create
   - delete
@@ -262,6 +262,34 @@ rules:
   - solrconfigsets
   - solrconfigsets/status
   - solrconfigsets/finalizers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - flightdeck.t7.io
+  resources:
+  - solrroles
+  - solrroles/status
+  - solrroles/finalizers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - flightdeck.t7.io
+  resources:
+  - solrusers
+  - solrusers/status
+  - solrusers/finalizers
   verbs:
   - create
   - delete

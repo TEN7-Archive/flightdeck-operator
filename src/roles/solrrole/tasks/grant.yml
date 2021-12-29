@@ -1,0 +1,63 @@
+---
+- name: Get grants only for the current collection and permission
+  set_fact:
+    _collection_grant_for_perm: "{{ _permission_list.json.authorization.permissions \
+      | selectattr('collection','defined') \
+      | selectattr('collection', '==', _collection) \
+      | selectattr('name','defined') \
+      | selectattr('name', '==', _permission) \
+      | list }}"
+
+- name: Create grant if it doesn't exist
+  uri:
+    url: "{{ _solr_cluster_url }}/solr/admin/authorization"
+    force_basic_auth: true
+    user: "{{ _solr_admin_user }}"
+    password: "{{ _solr_admin_password }}"
+    method: POST
+    headers:
+      Content-Type: "application/json"
+    return_content: yes
+    status_code:
+      - 200
+      - 201
+    body_format: json
+    body: |
+      {
+        "set-permission": {
+          "name": "{{ _permission }}",
+          "role": "{{ ansible_operator_meta.name }}",
+          "collection": "{{ _collection }}",
+        }
+      }
+  when:
+    - _collection_grant_for_perm | length == 0
+
+- name: Update grant if it does exist
+  uri:
+    url: "{{ _solr_cluster_url }}/solr/admin/authorization"
+    force_basic_auth: true
+    user: "{{ _solr_admin_user }}"
+    password: "{{ _solr_admin_password }}"
+    method: POST
+    headers:
+      Content-Type: "application/json"
+    return_content: yes
+    status_code:
+      - 200
+      - 201
+    body_format: json
+    body: |
+      {
+        "set-permission": {
+          "name": "{{ _permission }}",
+          "role": "{{ ansible_operator_meta.name }}",
+          "collection": "{{ _collection }}",
+          "index": "{{ _grant.index }}"
+        }
+      }
+  when:
+    - _grant.index is defined
+  loop: "{{ _collection_grant_for_perm | default([]) }}"
+  loop_control:
+    loop_var: _grant

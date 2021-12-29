@@ -65,11 +65,11 @@
     role: solrcluster_finalizer
 - version: v1
   group: flightdeck.t7.io
-  kind: SolrCore
-  role: solrcore
+  kind: SolrCollection
+  role: solrcollection
   finalizer:
-    name: flightdeck.t7.io/solrcore-finalizer
-    role: solrcore_finalizer
+    name: flightdeck.t7.io/solrcollection-finalizer
+    role: solrcollection_finalizer
 - version: v1
   group: flightdeck.t7.io
   kind: ZookeeperCluster
@@ -84,4 +84,18 @@
   finalizer:
     name: flightdeck.t7.io/solrconfigset-finalizer
     role: solrconfigset_finalizer
+- version: v1
+  group: flightdeck.t7.io
+  kind: SolrRole
+  role: solrrole
+  finalizer:
+    name: flightdeck.t7.io/solrrole-finalizer
+    role: solrrole_finalizer
+- version: v1
+  group: flightdeck.t7.io
+  kind: SolrUser
+  role: solruser
+  finalizer:
+    name: flightdeck.t7.io/solruser-finalizer
+    role: solruser_finalizer
 # +kubebuilder:scaffold:watch
