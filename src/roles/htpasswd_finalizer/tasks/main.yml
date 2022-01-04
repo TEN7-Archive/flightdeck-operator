@@ -1,13 +1,13 @@
 ---
 - name: Generate the htpasswd full name
   set_fact:
-    _htpasswd_full_name: "{{ fullname_override | default('htpasswd-' + ansible_operator_meta.name) }}"
+    _htpasswd_full_name: "{{ fullname_override | default(ansible_operator_meta.name + '-htpasswd') }}"
 
 - name: Delete the login secrets
   k8s:
     api_version: "v1"
     kind: "Secret"
-    name: "{{ item.secret | default(_htpasswd_full_name + '-login-' + item.name) }}"
+    name: "{{ item.secret | default(item.name + ansible_operator_meta.name + '-htpasswd') }}"
     namespace: "{{ ansible_operator_meta.namespace }}"
     state: absent
   loop: "{{ logins | default([]) }}"

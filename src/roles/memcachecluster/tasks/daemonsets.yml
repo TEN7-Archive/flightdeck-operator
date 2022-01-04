@@ -6,7 +6,7 @@
       apiVersion: apps/v1
       kind: DaemonSet
       metadata:
-        name: {{ _memcache_cluster_full_name }}-proxy
+        name: proxy-{{ _memcache_cluster_full_name }}
         labels:
           app.kubernetes.io/managed-by: "flightdeck-operator"
           app.kubernetes.io/created-by: "controller-manager"
@@ -50,12 +50,12 @@
                     name: twemproxy
                     protocol: TCP
                 volumeMounts:
-                  - name: "vol-config-flightdeck-twemproxy"
+                  - name: "twemproxy-config"
                     mountPath: "/config/twemproxy"
             volumes:
-              - name: vol-config-flightdeck-twemproxy
+              - name: "twemproxy-config"
                 configMap:
-                  name: {{ _memcache_cluster_full_name }}-proxy
+                  name: proxy-{{ _memcache_cluster_full_name }}
     namespace: "{{ ansible_operator_meta.namespace }}"
     wait: true
     wait_timeout: 120

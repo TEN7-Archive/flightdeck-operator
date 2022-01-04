@@ -1,7 +1,7 @@
 ---
 - name: Generate the cronjob name
   set_fact:
-    _cronjob_full_name: "{{ fullname_override | default('phpcronjob-' + ansible_operator_meta.name) }}"
+    _cronjob_full_name: "{{ fullname_override | default(ansible_operator_meta.name + '-phpcronjob') }}"
 
 - name: Fetch the PhpApplication definition
   set_fact:
@@ -14,7 +14,7 @@
 
 - name: Generate the PHP App name
   set_fact:
-    _phpapp_full_name: "{{ _phpapp_def.spec.fullname_override | default('phpapp-' + php_application) }}"
+    _phpapp_full_name: "{{ _phpapp_def.spec.fullname_override | default(php_application + '-phpapp') }}"
 
 - name: Create cronjob
   k8s:
@@ -106,13 +106,13 @@
                 volumes:
                   - name: "varnish-secret"
                     secret:
-                      secretName: "{{ varnish_secret | default(_phpapp_full_name + '-varnish') }}"
+                      secretName: "{{ varnish_secret | default('varnish-' + _phpapp_full_name) }}"
                   - name: "php-settings"
                     secret:
-                      secretName: "{{ _phpapp_full_name + '-settings' }}"
+                      secretName: "{{ 'settings-' + _phpapp_full_name }}"
                   - name: "web-config"
                     configMap:
-                      name: "{{ _phpapp_full_name }}-web-config"
+                      name: "web-{{ _phpapp_full_name }}"
       {% if _phpapp_def.spec.persistence.enabled | default(false) == true %}
                   - name: "web-storage"
                     persistentVolumeClaim:
@@ -121,7 +121,7 @@
       {% for _volume in _phpapp_def.spec.volumes | default([]) %}
                   - name: "{{ 'vol-pvc-' + _volume.name }}"
                     persistentVolumeClaim:
-                      claimName: "{{ _volume.fullname_override | default(_phpapp_full_name + '-' + _volume.name) }}"
+                      claimName: "{{ _volume.fullname_override | default(_volume.name) }}"
       {% endfor %}
       {% for _secret in _phpapp_def.spec.secrets | default([]) %}
                   - name: "{{ 'vol-secret-' + _secret.name }}"

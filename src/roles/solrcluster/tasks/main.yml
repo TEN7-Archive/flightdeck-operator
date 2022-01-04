@@ -1,15 +1,7 @@
 ---
 - name: Generate the cluster name
   set_fact:
-    _solr_cluster_full_name: "{{ fullname_override | default('solrcluster-' + ansible_operator_meta.name) }}"
-
-- name: Check to see if the solr cluster statefulsets already exist
-  set_fact:
-    _first_time_setup: true
-  when:
-    - lookup('k8s', kind='secret', namespace=ansible_operator_meta.namespace, resource_name=_first_time_setup_name) | length < 1
-  vars:
-    _first_time_setup_name: "{{ 'setup-' + _solr_cluster_full_name }}"
+    _solr_cluster_full_name: "{{ fullname_override | default(ansible_operator_meta.name + '-solrcluster') }}"
 
 - name: Fetch the ZookeeperCluster namespace
   set_fact:
@@ -26,7 +18,7 @@
 
 - name: Generate the zookeeper cluster name
   set_fact:
-    _zookeeper_cluster_full_name: "{{ _zkcluster_def.spec.fullnameOverride | default('zookeepercluster-' + zookeeper_cluster.name) }}"
+    _zookeeper_cluster_full_name: "{{ _zkcluster_def.spec.fullnameOverride | default(zookeeper_cluster.name + '-zookeepercluster') }}"
 
 - name: Work with secrets
   include_tasks: 'secrets.yml'

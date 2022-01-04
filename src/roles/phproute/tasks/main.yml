@@ -1,7 +1,7 @@
 ---
 - name: Generate the route name
   set_fact:
-    _phproute_full_name: "{{ fullname_override | default('phproute-' + ansible_operator_meta.name) }}"
+    _phproute_full_name: "{{ fullname_override | default(ansible_operator_meta.name + '-phproute') }}"
 
 - name: Fetch the PhpApplication definition
   set_fact:
@@ -28,7 +28,7 @@
 
 - name: Generate the PHP App name
   set_fact:
-    _phpapp_full_name: "{{ _phpapp_def.spec.fullname_override | default('phpapp-' + php_application) }}"
+    _phpapp_full_name: "{{ _phpapp_def.spec.fullname_override | default(php_application + '-phpapp') }}"
 
 - name: Create ingress
   k8s:
@@ -61,7 +61,7 @@
           nginx.ingress.kubernetes.io/rewrite-target: "{{ _ingress.rewrite_target }}"
       {% endif %}
       {% if (auth is defined) and (auth.state | default(true) == true) %}
-      {% set _htpasswd_secret_default_name = _htpasswd_def.spec.fullnameOverride | default('htpasswd-' + auth.htpasswd) %}
+      {% set _htpasswd_secret_default_name = _htpasswd_def.spec.fullnameOverride | default(auth.htpasswd + '-htpasswd') %}
           nginx.ingress.kubernetes.io/auth-type: "basic"
           nginx.ingress.kubernetes.io/auth-secret: "{{ _htpasswd_def.spec.secret | default(_htpasswd_secret_default_name) }}"
           nginx.ingress.kubernetes.io/auth-realm: "{{ auth.message | default('Please enter your login.') }}"
@@ -81,7 +81,7 @@
       {% endif %}
       {% if tls.state | default(false) %}
         tls:
-          - secretName: "{{ cert_secret | default(_phproute_full_name + '-cert') }}"
+          - secretName: "{{ cert_secret | default('cert-' + _phproute_full_name) }}"
             hosts:
       {% for _rule in rules | default([]) %}
               - "{{ _rule.host }}"

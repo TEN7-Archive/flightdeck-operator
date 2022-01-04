@@ -7,7 +7,7 @@
 
 - name: Generate the app name
   set_fact:
-    _phpapp_full_name: "{{ fullname_override | default('phpapp-' + ansible_operator_meta.name) }}"
+    _phpapp_full_name: "{{ fullname_override | default(ansible_operator_meta.name + '-phpapp') }}"
 
 - name: Work with secrets
   include_tasks: 'secrets.yml'

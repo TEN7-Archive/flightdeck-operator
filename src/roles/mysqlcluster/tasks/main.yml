@@ -1,7 +1,7 @@
 ---
 - name: Generate the cluster name
   set_fact:
-    _mysql_cluster_full_name: "{{ fullname_override | default('mysqlcluster-' + ansible_operator_meta.name) }}"
+    _mysql_cluster_full_name: "{{ fullname_override | default(ansible_operator_meta.name + '-mysqlcluster') }}"
 
 # - debug: var=hostvars[inventory_hostname]
 
@@ -16,7 +16,7 @@
 
 - name: Get the mysql operator secret name
   set_fact:
-    _mysql_operator_secret_name: "{{ mysql_operator_secret | default(_mysql_cluster_full_name + '-operator') }}"
+    _mysql_operator_secret_name: "{{ mysql_operator_secret | default('operator-' + _mysql_cluster_full_name) }}"
 
 - name: Fetch the operator secret
   set_fact:

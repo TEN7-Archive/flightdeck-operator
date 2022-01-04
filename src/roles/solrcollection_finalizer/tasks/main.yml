@@ -27,7 +27,7 @@
 
 - name: Generate the solr cluster name
   set_fact:
-    _solr_cluster_full_name: "{{ _solrcluster_def.spec.fullnameOverride | default('solrcluster-' + solr_cluster.name) }}"
+    _solr_cluster_full_name: "{{ _solrcluster_def.spec.fullnameOverride | default(solr_cluster.name + '-solrcluster') }}"
 
 - name: Generate the solr service url
   set_fact:
@@ -35,7 +35,7 @@
 
 - name: Generate the solr admin secret name
   set_fact:
-    _solr_admin_secret_name: "{{ _solrcluster_def.spec.solrAdmin.secret | default(_solr_cluster_full_name + '-admin') }}"
+    _solr_admin_secret_name: "{{ _solrcluster_def.spec.solrAdmin.secret | default('admin-' + _solr_cluster_full_name) }}"
 
 - name: Fetch the solr admin secret
   set_fact:

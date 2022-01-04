@@ -1,7 +1,7 @@
 ---
 - name: Generate the cluster name
   set_fact:
-    _memcache_cluster_full_name: "{{ fullname_override | default('memcachecluster-' + ansible_operator_meta.name) }}"
+    _memcache_cluster_full_name: "{{ fullname_override | default(ansible_operator_meta.name + 'memcachecluster') }}"
 
 - name: Delete the twemproxy service
   k8s:
@@ -15,7 +15,7 @@
   k8s:
     api_version: "apps/v1"
     kind: "StatefulSet"
-    name: "{{ _memcache_cluster_full_name }}-proxy"
+    name: "proxy-{{ _memcache_cluster_full_name }}"
     namespace: "{{ ansible_operator_meta.namespace }}"
     state: absent
 
@@ -23,7 +23,7 @@
   k8s:
     api_version: "v1"
     kind: "Service"
-    name: "{{ _memcache_cluster_full_name }}-cache"
+    name: "cache-{{ _memcache_cluster_full_name }}"
     namespace: "{{ ansible_operator_meta.namespace }}"
     state: absent
 
@@ -31,7 +31,7 @@
   k8s:
     api_version: "apps/v1"
     kind: "StatefulSet"
-    name: "{{ _memcache_cluster_full_name }}-cache"
+    name: "cache-{{ _memcache_cluster_full_name }}"
     namespace: "{{ ansible_operator_meta.namespace }}"
     state: absent
 
@@ -39,7 +39,7 @@
   k8s:
     api_version: "v1"
     kind: "ConfigMap"
-    name: "{{ _memcache_cluster_full_name }}-proxy"
+    name: "proxy-{{ _memcache_cluster_full_name }}"
     namespace: "{{ ansible_operator_meta.namespace }}"
     state: absent
 
@@ -47,6 +47,6 @@
   k8s:
     api_version: "v1"
     kind: "ConfigMap"
-    name: "{{ _memcache_cluster_full_name }}-cache"
+    name: "cache-{{ _memcache_cluster_full_name }}"
     namespace: "{{ ansible_operator_meta.namespace }}"
     state: absent

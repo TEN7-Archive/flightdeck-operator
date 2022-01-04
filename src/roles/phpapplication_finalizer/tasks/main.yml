@@ -1,7 +1,7 @@
 ---
 - name: Generate the app name
   set_fact:
-    _phpapp_full_name: "{{ fullname_override | default('phpapp-' + ansible_operator_meta.name) }}"
+    _phpapp_full_name: "{{ fullname_override | default(ansible_operator_meta.name + '-phpapp') }}"
 
 - name: Delete deployment
   k8s:
@@ -27,8 +27,8 @@
     namespace: "{{ ansible_operator_meta.namespace }}"
     state: absent
   loop:
-    - "{{ _phpapp_full_name + '-varnish' }}"
-    - "{{ _phpapp_full_name + '-settings' }}"
+    - "{{ 'varnish-' + _phpapp_full_name }}"
+    - "{{ 'settings-' + _phpapp_full_name }}"
 
 - name: Delete the configmaps
   k8s:
@@ -38,8 +38,8 @@
     namespace: "{{ ansible_operator_meta.namespace }}"
     state: absent
   loop:
-    - "{{ _phpapp_full_name }}-varnish-config"
-    - "{{ _phpapp_full_name }}-web-config"
+    - "varnish-{{ _phpapp_full_name }}"
+    - "web-{{ _phpapp_full_name }}"
 
 - name: Delete persistent volume claim
   k8s:

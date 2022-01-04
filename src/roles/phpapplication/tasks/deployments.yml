@@ -135,16 +135,16 @@
             volumes:
               - name: "varnish-secret"
                 secret:
-                  secretName: "{{ varnish_secret | default(_phpapp_full_name + '-varnish') }}"
+                  secretName: "{{ varnish_secret | default('varnish-' + _phpapp_full_name) }}"
               - name: "php-settings"
                 secret:
-                  secretName: "{{ _phpapp_full_name + '-settings' }}"
+                  secretName: "{{ 'settings-' + _phpapp_full_name }}"
               - name: "varnish-config"
                 configMap:
-                  name: "{{ _phpapp_full_name }}-varnish-config"
+                  name: "varnish-{{ _phpapp_full_name }}"
               - name: "web-config"
                 configMap:
-                  name: "{{ _phpapp_full_name }}-web-config"
+                  name: "web-{{ _phpapp_full_name }}"
       {% if persistence.enabled | default(false) == true %}
               - name: "web-storage"
                 persistentVolumeClaim:
@@ -153,7 +153,7 @@
       {% for _volume in volumes | default([]) %}
               - name: "{{ 'vol-pvc-' + _volume.name }}"
                 persistentVolumeClaim:
-                  claimName: "{{ _volume.fullname_override | default(_phpapp_full_name + '-' + _volume.name) }}"
+                  claimName: "{{ _volume.fullname_override | default(_volume.name) }}"
       {% endfor %}
       {% for _secret in secrets | default([]) %}
               - name: "{{ 'vol-secret-' + _secret.name }}"

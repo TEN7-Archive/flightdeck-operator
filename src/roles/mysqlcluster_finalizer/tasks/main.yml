@@ -1,7 +1,7 @@
 ---
 - name: Generate the cluster name
   set_fact:
-    _mysql_cluster_full_name: "{{ fullname_override | default('mysqlcluster-' + ansible_operator_meta.name) }}"
+    _mysql_cluster_full_name: "{{ fullname_override | default(ansible_operator_meta.name + '-mysqlcluster') }}"
 
 - name: Delete the mysql service
   k8s:
@@ -23,7 +23,7 @@
   k8s:
     api_version: "v1"
     kind: "ConfigMap"
-    name: "{{ _mysql_cluster_full_name }}-config"
+    name: "config-{{ _mysql_cluster_full_name }}"
     namespace: "{{ ansible_operator_meta.namespace }}"
     state: absent
 
@@ -31,7 +31,7 @@
   k8s:
     api_version: "v1"
     kind: "Secret"
-    name: "{{ _mysql_cluster_full_name + '-user' }}"
+    name: "{{ 'user-' + _mysql_cluster_full_name }}"
     namespace: "{{ ansible_operator_meta.namespace }}"
     state: absent
   when:
@@ -41,7 +41,7 @@
   k8s:
     api_version: "v1"
     kind: "Secret"
-    name: "{{ _mysql_cluster_full_name + '-operator' }}"
+    name: "{{ 'operator-' + _mysql_cluster_full_name }}"
     namespace: "{{ ansible_operator_meta.namespace }}"
     state: absent
   when:
@@ -51,7 +51,7 @@
   k8s:
     api_version: "v1"
     kind: "Secret"
-    name: "{{ _mysql_cluster_full_name + '-root' }}"
+    name: "{{ 'root-' + _mysql_cluster_full_name }}"
     namespace: "{{ ansible_operator_meta.namespace }}"
     state: absent
   when:

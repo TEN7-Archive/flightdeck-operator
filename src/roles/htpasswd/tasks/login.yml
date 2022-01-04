@@ -2,18 +2,10 @@
 
 - name: Get the login secret name
   set_fact:
-    _login_secret_name: "{{ _login.secret | default(_htpasswd_full_name + '-login-' + _login.name) }}"
+    _login_secret_name: "{{ _login.secret | default(_login.name + ansible_operator_meta.name + '-htpasswd') }}"
 - name: Check if the login secret already exists
   set_fact:
     _login_secret_def: "{{ lookup('k8s', kind='secret', namespace=ansible_operator_meta.namespace, resource_name=_login_secret_name) }}"
-
-# - name: Create tempfile for the login secret
-#   tempfile:
-#     state: file
-#     prefix: "login_secret"
-#   register: _login_secret_passfile
-#   when:
-#     - "(_login_secret_def | length) < 1"
 
 - name: Get the login password
   set_fact:
@@ -49,10 +41,3 @@
     name: "{{ _login_secret_def.data['username'] | default(_login.name) }}"
     password: "{{ _login_secret_password }}"
   changed_when: false
-
-# - name: Delete the tempfile for the login secret
-#   file:
-#     path: "{{ _login_secret_passfile.path }}"
-#     state: absent
-#   when:
-#     - _login_secret_passfile.path is defined

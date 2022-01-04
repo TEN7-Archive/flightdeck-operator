@@ -5,7 +5,7 @@
       apiVersion: v1
       kind: ConfigMap
       metadata:
-        name: {{ _memcache_cluster_full_name }}-proxy
+        name: proxy-{{ _memcache_cluster_full_name }}
         labels:
           app.kubernetes.io/managed-by: "flightdeck-operator"
           app.kubernetes.io/created-by: "controller-manager"
@@ -36,7 +36,7 @@
             server_failure_limit: 30
             servers:
       {% for i in range(replicas | default(3)) %}
-              - {{ _memcache_cluster_full_name }}-cache-{{ i }}.{{ _memcache_cluster_full_name }}-cache:{{ cache_port | default('11211') }}:1
+              - cache-{{ _memcache_cluster_full_name }}-{{ i }}.cache-{{ _memcache_cluster_full_name }}:{{ cache_port | default('11211') }}:1
       {% endfor %}
     namespace: "{{ ansible_operator_meta.namespace }}"
 - name: Create memcache configmap
@@ -45,7 +45,7 @@
       apiVersion: v1
       kind: ConfigMap
       metadata:
-        name: {{ _memcache_cluster_full_name }}-cache
+        name: cache-{{ _memcache_cluster_full_name }}
         labels:
           app.kubernetes.io/managed-by: "flightdeck-operator"
           app.kubernetes.io/created-by: "controller-manager"

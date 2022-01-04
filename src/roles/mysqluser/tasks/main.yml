@@ -11,11 +11,11 @@
 
 - name: Generate the cluster name
   set_fact:
-    _mysql_cluster_full_name: "{{ _cluster_def.spec.fullname_override | default('mysqlcluster-' + cluster.name) }}"
+    _mysql_cluster_full_name: "{{ _cluster_def.spec.fullname_override | default(cluster.name + '-mysqlcluster') }}"
 
 - name: Get the mysql operator secret name
   set_fact:
-    _mysql_operator_secret_name: "{{ _cluster_def.spec.mysql_operator_secret | default(_mysql_cluster_full_name + '-operator') }}"
+    _mysql_operator_secret_name: "{{ _cluster_def.spec.mysql_operator_secret | default('operator-' + _mysql_cluster_full_name) }}"
 
 - name: Fetch the operator secret
   set_fact:
@@ -32,7 +32,7 @@
 
 - name: Get the mysql user secret name
   set_fact:
-    _mysql_user_secret_name: "{{ password_secret | default('mysqluser-' + cluster.name + '-' + ansible_operator_meta.name) }}"
+    _mysql_user_secret_name: "{{ password_secret | default(ansible_operator_meta.name + '-' + cluster.name + '-' + '-mysqluser') }}"
 - name: Check if the mysql user secret already exists
   set_fact:
     _mysql_user_secret_def: "{{ lookup('k8s', kind='secret', namespace=ansible_operator_meta.namespace, resource_name=_mysql_user_secret_name) }}"

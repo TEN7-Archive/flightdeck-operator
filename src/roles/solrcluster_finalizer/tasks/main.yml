@@ -14,7 +14,7 @@
 
 - name: Generate the cluster name
   set_fact:
-    _solr_cluster_full_name: "{{ fullname_override | default('solrcluster-' + ansible_operator_meta.name) }}"
+    _solr_cluster_full_name: "{{ fullname_override | default(ansible_operator_meta.name + '-solrcluster') }}"
 
 - name: Delete the solr service
   k8s:

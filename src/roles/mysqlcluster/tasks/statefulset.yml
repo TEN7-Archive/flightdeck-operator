@@ -50,7 +50,7 @@
                   - "chown -R 1000:1000 /var/lib/mysql"
                 volumeMounts:
                   - mountPath: /var/lib/mysql
-                    name: vol-mysql
+                    name: data
       {% endif %}
             containers:
               - name: "db"
@@ -67,38 +67,38 @@
                 volumeMounts:
       {% if persistence.enabled | default(false) == true %}
                   - mountPath: /var/lib/mysql
-                    name: vol-mysql
+                    name: data
       {% endif %}
-                  - name: "vol-secret-mysql-root"
+                  - name: "mysql-root"
                     mountPath: "/config/mysql-root"
-                  - name: vol-secret-operator
+                  - name: "mysql-operator"
                     mountPath: /config/operator
-                  - name: vol-secret-mysql-reader
+                  - name: "mysql-reader"
                     mountPath: /config/mysql-reader
-                  - name: "vol-config-flight-deck-db"
+                  - name: "mysql-config"
                     mountPath: "/config/mysql"
             volumes:
-      {% if persistence.enabled | default(false) == true %}
-              - name: vol-mysql
+      {% if (persistence.enabled | default(false) == true) and (persistence.existing_claim is defined) %}
+              - name: data
                 persistentVolumeClaim:
                   claimName: "{{ persistence.existing_claim | default(_default_volume_name) }}"
       {% endif %}
-              - name: vol-secret-mysql-root
+              - name: "mysql-root"
                 secret:
                   secretName: {{ _mysql_root_secret_name }}
-              - name: vol-secret-operator
+              - name: "mysql-operator"
                 secret:
                   secretName: {{ _mysql_operator_secret_name }}
-              - name: vol-secret-mysql-reader
+              - name: "mysql-reader"
                 secret:
                   secretName: {{ _mysql_readers_secret_name }}
-              - name: vol-config-flight-deck-db
+              - name: "mysql-config"
                 configMap:
-                  name: {{ _mysql_cluster_full_name }}-config
+                  name: config-{{ _mysql_cluster_full_name }}
       {% if (persistence.enabled | default(false) == true) and (persistence.existing_claim is not defined) %}
         volumeClaimTemplates:
           - metadata:
-              name: "{{ _default_volume_name }}"
+              name: "data"
               labels:
                 app.kubernetes.io/managed-by: "flightdeck-operator"
                 app.kubernetes.io/created-by: "controller-manager"
@@ -120,7 +120,7 @@
     wait: true
     wait_timeout: 120
   vars:
-    _default_volume_name: "{{ persistence.name | _mysql_cluster_full_name }}"
+    _default_volume_name: "{{ persistence.name | default(_mysql_cluster_full_name) }}"
 
 # The wait parameter above doesn't seem to work because StatefulSet.spec.status
 # doesn't have any conditions which Ansible requires. So we hack around it.

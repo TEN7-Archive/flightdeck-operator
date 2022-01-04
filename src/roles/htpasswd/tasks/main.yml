@@ -1,7 +1,7 @@
 ---
 - name: Generate the htpasswd full name
   set_fact:
-    _htpasswd_full_name: "{{ fullname_override | default('htpasswd-' + ansible_operator_meta.name) }}"
+    _htpasswd_full_name: "{{ fullname_override | default(ansible_operator_meta.name + '-htpasswd') }}"
 
 # We always need to create this file, so tell Ansible to ignore it as a change.
 - name: Create a temp file for the htpasswd

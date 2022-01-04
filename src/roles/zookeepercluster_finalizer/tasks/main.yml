@@ -14,7 +14,7 @@
 
 - name: Generate the cluster name
   set_fact:
-    _zookeeper_cluster_full_name: "{{ fullname_override | default('zookeepercluster-' + ansible_operator_meta.name) }}"
+    _zookeeper_cluster_full_name: "{{ fullname_override | default(ansible_operator_meta.name + '-zookeepercluster') }}"
 
 - name: Delete the zookeeper service
   k8s:
