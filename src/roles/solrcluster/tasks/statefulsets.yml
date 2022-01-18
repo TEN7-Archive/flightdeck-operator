@@ -42,7 +42,7 @@
               fsGroup: 1000
             containers:
               - name: "solr"
-                image: {{ image | default('ten7/flightdeck-solr-8:develop') }}
+                image: {{ image | default('ten7/flightdeck-solr-8') }}
                 imagePullPolicy: Always
       {% if _flightdeck_t7_io_solrcluster_spec.resources is defined %}
                 resources:

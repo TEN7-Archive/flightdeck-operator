@@ -54,7 +54,7 @@
       {% endif %}
             containers:
               - name: "db"
-                image: {{ image | default('ten7/flightdeck-db-10.4:develop') }}
+                image: {{ image | default('ten7/flightdeck-db-10.6') }}
                 imagePullPolicy: Always
       {% if resources is defined %}
                 resources:

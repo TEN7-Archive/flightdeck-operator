@@ -56,7 +56,7 @@
             securityContext:
               fsGroup: 1000
             containers:
-              - image: {{ image | default('ten7/flightdeck-web-7.4') }}
+              - image: {{ image | default('ten7/flightdeck-web-8.0') }}
                 imagePullPolicy: Always
                 name: web
       {% if _flightdeck_t7_io_phpapplication_spec.resources is defined %}
@@ -138,7 +138,7 @@
                   secretName: "{{ varnish_secret | default('varnish-' + _phpapp_full_name) }}"
               - name: "php-settings"
                 secret:
-                  secretName: "{{ 'settings-' + _phpapp_full_name }}"
+                  secretName: "{{ ansible_operator_meta.name + '-settings' }}"
               - name: "varnish-config"
                 configMap:
                   name: "varnish-{{ _phpapp_full_name }}"
