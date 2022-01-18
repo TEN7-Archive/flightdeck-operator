@@ -1,6 +1,11 @@
 apiVersion: flightdeck.t7.io/v1
 kind: MySQLDatabase
 metadata:
-  name: mysqldatabase-sample
+  name: my-database       # Database name is taken from CRD name, `-` becomes `_`.
 spec:
-  foo: bar
+  cluster:
+    name: fdo
+    namespace: default
+  dbName: "my_database"   # Literal Database name if not relying on the CRD name.
+  encoding: "utf8mb4"
+  collation: "utf8mb4_unicode_ci"

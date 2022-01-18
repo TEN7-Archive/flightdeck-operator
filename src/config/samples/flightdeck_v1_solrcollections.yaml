@@ -1,7 +1,11 @@
 apiVersion: flightdeck.t7.io/v1
 kind: SolrCollection
 metadata:
-  name: solrcollection-sample
+  name: "fdo-operator-core"
 spec:
-  # Add fields here
-  foo: bar
+  solrCluster:
+    name: "fdo"
+    namespace: "default"
+  configSet:
+    name: "fdo"
+    namespace: "default"

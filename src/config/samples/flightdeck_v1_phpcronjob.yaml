@@ -1,7 +1,21 @@
 apiVersion: flightdeck.t7.io/v1
 kind: PhpCronjob
 metadata:
-  name: phpcronjob-sample
+  name: "sleepy-cat"
 spec:
-  # Add fields here
-  foo: bar
+  phpApplication: "drupal"
+  schedule: "0 * * * *"
+  suspend: no
+  args:
+    - "/bin/bash"
+    - "-c"
+    - "sleep 1"
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: kubernetes.io/os
+            operator: In
+            values:
+              - linux

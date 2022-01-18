@@ -1,7 +1,16 @@
 apiVersion: flightdeck.t7.io/v1
 kind: PhpRoute
 metadata:
-  name: phproute-sample
+  name: "apex"
 spec:
-  # Add fields here
-  foo: bar
+  phpApplication: "drupal"
+  tls:
+    state: yes
+    issuer: "lets-encrypt-prod"
+  auth:
+    state: yes
+    htpasswd: "muffy-example-com"
+  rules:
+    - host: "muffy.example.com"
+      paths:
+        - path: "/"

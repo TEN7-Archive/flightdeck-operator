@@ -1,7 +1,18 @@
 apiVersion: flightdeck.t7.io/v1
 kind: MemcacheCluster
 metadata:
-  name: memcachecluster-sample
+  name: fdo-memcache
+  namespace: default
 spec:
-  # Add fields here
-  foo: bar
+  replicas: 3
+  memory: "128"  # Memory is in MB.
+  threads: "4"
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+           - matchExpressions:
+             - key: kubernetes.io/os
+               operator: In
+               values:
+                 - linux

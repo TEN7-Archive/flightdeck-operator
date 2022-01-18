@@ -1,7 +1,16 @@
 apiVersion: flightdeck.t7.io/v1
 kind: SolrCluster
 metadata:
-  name: solrcluster-sample
+  name: "fdo"
 spec:
-  # Add fields here
-  foo: bar
+  zookeeperCluster:
+    name: "fdo"
+    namespace: "default"
+  replicas: 3
+  persistence:
+    enabled: true
+    size: "5Gi"
+    class: "rook-cephfs"
+  solrAdmin:
+    user: solr
+    secret: "solr-admin-secret"

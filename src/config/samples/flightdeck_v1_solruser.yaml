@@ -1,7 +1,10 @@
 apiVersion: flightdeck.t7.io/v1
 kind: SolrUser
 metadata:
-  name: solruser-sample
+  name: "fdo"
 spec:
-  # Add fields here
-  foo: bar
+  solrCluster:
+    name: "fdo"
+    namespace: "default"
+  roles:
+    - "fdo"

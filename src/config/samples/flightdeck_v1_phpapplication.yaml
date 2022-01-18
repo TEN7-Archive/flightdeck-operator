@@ -1,7 +1,88 @@
 apiVersion: flightdeck.t7.io/v1
 kind: PhpApplication
 metadata:
-  name: phpapplication-sample
+  name: drupal
+  namespace: default
+  annotations:
+    "ansible.sdk.operatorframework.io/verbosity": "5"
 spec:
-  # Add fields here
-  foo: bar
+  replicas: 3                        # Optional, defaults to 1
+  serverName: "muffy.example.com"    # Optional, defaults to `flightdeck.test`
+
+  mysqlDatabases:
+    - name: my-database              # Name and namespace of the MySQLDatabase def.
+      namespace: "default"      # Optional, defaults to the same namespace.
+  mysqlUsers:
+    - name: my-user                  # Name and namespace of the MySQLUser def.
+      namespace: "default"      # Optional, defaults to the same namespace.
+
+  docroot: "/var/www/html"           # Optional, defaults to /var/www/html
+  serverAliases:                     # Sets apache server aliases.
+    - "docker.test"
+    - "muffy.test"
+  hostAliases:                       # /etc/hosts aliases
+    - ip: "127.0.0.1"
+      hostnames:
+        - "docker.test"
+  env:                               # Env is set on the pod and Apache level
+    - name: "T7_SITE_ENVIRONMENT"
+      value: "live"
+  persistence:
+    enabled: yes
+    class: "rook-cephfs"
+    accessModes:
+      - "ReadWriteMany"
+    size: "5Gi"
+    path: "/var/www/files"         # No separate "volumes" key, say the path here
+  php:
+    upload_max_filesize: "128M"
+    post_max_size: "128M"
+  varnish:
+    secretName: "varnish-secret"
+    memSize: "16m"
+    skipCache:
+      - "/update\\.php"
+      - "/core/install\\.php"
+      - "/admin"
+      - "/admin/.*"
+      - "/user"
+      - "/user/.*"
+      - "/users/.*"
+      - "/info/.*"
+      - "/flag/.*"
+      - ".*/ahah/.*"
+    probe:
+      state: no                        # Optional, existence of probe implies state: yes.
+      probeHost: "muffy.example.com"
+      headers:                         # Optional, defaults to nothing.
+        - name: "X-Forwarded-Proto"
+          value: "https"
+  scripts:
+    preDeployCheck: |
+      sleep 58
+    postDeploy: |
+      sleep 60
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+  minReadySeconds: 15
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+              - key: flightdeck.ten7.io/phpapplication
+                operator: In
+                values:
+                  - drupal
+          topologyKey: kubernetes.io/hostname
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: kubernetes.io/os
+            operator: In
+            values:
+              - linux

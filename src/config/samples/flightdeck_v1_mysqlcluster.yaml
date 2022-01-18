@@ -1,8 +1,20 @@
 apiVersion: flightdeck.t7.io/v1
 kind: MySQLCluster
 metadata:
-  name: mysqlcluster-sample
+  name: fdo
+  namespace: default
 spec:
-  mysql_admin_secret: mysql-admin
-  mysql_readers_secret: mysql-reader
-  size: "20Gi"
+  persistence:
+    enabled: yes
+    size: 20Gi
+  replicas: 3
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+           - matchExpressions:
+             - key: kubernetes.io/os
+               operator: In
+               values:
+                 - linux
+  storageClass: "rook-cephfs"

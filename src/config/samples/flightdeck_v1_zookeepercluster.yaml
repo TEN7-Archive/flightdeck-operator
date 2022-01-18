@@ -1,7 +1,19 @@
 apiVersion: flightdeck.t7.io/v1
 kind: ZookeeperCluster
 metadata:
-  name: zookeepercluster-sample
+  name: "fdo-sample"
 spec:
-  # Add fields here
-  foo: bar
+  replicas: 3
+  persistence:
+    enabled: true
+    size: "1Gi"
+    class: "rook-cephfs"
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: kubernetes.io/os
+            operator: In
+            values:
+              - linux

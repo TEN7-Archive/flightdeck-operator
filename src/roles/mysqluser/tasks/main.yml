@@ -72,7 +72,7 @@
 
 - name: Create the MySQL user
   mysql_user:
-    name: "{{ username | default(ansible_operator_meta.name) }}"
+    name: "{{ username | default(ansible_operator_meta.name) | regex_replace('\\-', '_') }}"
     host: "{{ host | default('%') }}"
     password: "{{ _mysql_user_password }}"
     priv: "{% for _item in privileges %}\

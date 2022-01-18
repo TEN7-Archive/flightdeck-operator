@@ -32,7 +32,7 @@
 
 - name: Create the MySQL database
   mysql_db:
-    name: "{{ db_name | default(ansible_operator_meta.name) }}"
+    name: "{{ db_name | default(ansible_operator_meta.name) | regex_replace('\\-', '_') }}"
     collation: "{{ collation | default('utf8_general_ci') }}"
     encoding: "{{ encoding | default('utf8') }}"
     state: present

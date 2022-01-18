@@ -1,6 +1,15 @@
 apiVersion: flightdeck.t7.io/v1
 kind: MySQLUser
 metadata:
-  name: mysqluser-sample
+  name: my-user          # If username is not specified, CRD name is used. `-` becomes `_`.
 spec:
-  foo: bar
+  cluster:
+    name: fdo
+    namespace: default
+  username: "my_user"  
+  host: "%"
+  state: present
+  privileges:
+    - database: "my_database"
+      table: "*"
+      grant: "ALL"
