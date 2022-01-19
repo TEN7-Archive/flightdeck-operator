@@ -2,6 +2,16 @@ apiVersion: v1
 entries:
   flightdeck-operator:
   - apiVersion: v2
+    appVersion: 0.4.3
+    created: "2022-01-19T21:57:02.795667864Z"
+    description: Deploys the Flight Deck operator to run PHP applications on k8s
+    digest: 2d5036aa5562b2d235c94d88ba86fbf568b56c408e0200f5987a8f8ae6b9cf59
+    name: flightdeck-operator
+    type: application
+    urls:
+    - https://ten7.github.io/flightdeck-operator/flightdeck-operator-0.4.3.tgz
+    version: 0.4.3
+  - apiVersion: v2
     appVersion: 0.4.2
     created: "2022-01-19T20:26:20.058604538Z"
     description: Deploys the Flight Deck operator to run PHP applications on k8s
@@ -111,4 +121,4 @@ entries:
     urls:
     - https://ten7.github.io/flightdeck-operator/flightdeck-operator-0.0.3.tgz
     version: 0.0.3
-generated: "2022-01-19T20:26:20.058034534Z"
+generated: "2022-01-19T21:57:02.795102347Z"
