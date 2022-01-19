@@ -57,10 +57,7 @@ spec:
           name: manager
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
-          # Hack around the app version best practice template until we get real
-          # tags for the container.
-          # image: "{{ .Values.image.repository }}:{{ .Chart.AppVersion }}"
-          image: "{{ .Values.image.repository }}"
+          image: "{{ .Values.image.repository }}:{{ .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
