@@ -32,7 +32,7 @@
 
 - name: Get the mysql user secret name
   set_fact:
-    _mysql_user_secret_name: "{{ password_secret | default(ansible_operator_meta.name + '-' + cluster.name + '-' + '-mysqluser') }}"
+    _mysql_user_secret_name: "{{ password_secret | default(ansible_operator_meta.name + '-' + cluster.name + '-mysqluser') }}"
 - name: Check if the mysql user secret already exists
   set_fact:
     _mysql_user_secret_def: "{{ lookup('k8s', kind='secret', namespace=ansible_operator_meta.namespace, resource_name=_mysql_user_secret_name) }}"
