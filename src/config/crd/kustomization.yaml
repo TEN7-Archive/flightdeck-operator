@@ -16,4 +16,5 @@ resources:
 - bases/flightdeck.t7.io_solrconfigsets.yaml
 - bases/flightdeck.t7.io_solrroles.yaml
 - bases/flightdeck.t7.io_solrusers.yaml
+- bases/flightdeck.t7.io_twemproxyclusters.yaml
 # +kubebuilder:scaffold:crdkustomizeresource

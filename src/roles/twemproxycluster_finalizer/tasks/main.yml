@@ -1,0 +1,28 @@
+---
+- name: Generate the cluster name
+  set_fact:
+    _twempoxy_cluster_full_name: "{{ fullname_override | default(ansible_operator_meta.name + '-twemproxy') }}"
+
+- name: Delete the twemproxy service
+  k8s:
+    api_version: "v1"
+    kind: "Service"
+    name: "{{ service.name | default(_twempoxy_cluster_full_name) }}"
+    namespace: "{{ ansible_operator_meta.namespace }}"
+    state: absent
+
+- name: Delete the twemproxy daemonset
+  k8s:
+    api_version: "apps/v1"
+    kind: "StatefulSet"
+    name: "{{ _twempoxy_cluster_full_name }}"
+    namespace: "{{ ansible_operator_meta.namespace }}"
+    state: absent
+
+- name: Delete the twemproxy configmap
+  k8s:
+    api_version: "v1"
+    kind: "ConfigMap"
+    name: "proxy-{{ _twempoxy_cluster_full_name }}"
+    namespace: "{{ ansible_operator_meta.namespace }}"
+    state: absent

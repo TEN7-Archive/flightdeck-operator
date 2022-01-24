@@ -303,4 +303,21 @@ rules:
       - patch
       - update
       - watch
+  ##
+  ## Rules for flightdeck.t7.io/v1, Kind: TwemproxyCluster
+  ##
+  - apiGroups:
+      - flightdeck.t7.io
+    resources:
+      - twemproxyclusters
+      - twemproxyclusters/status
+      - twemproxyclusters/finalizers
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
 # +kubebuilder:scaffold:rules

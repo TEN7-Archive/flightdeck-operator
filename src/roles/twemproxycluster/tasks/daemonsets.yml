@@ -6,35 +6,35 @@
       apiVersion: apps/v1
       kind: DaemonSet
       metadata:
-        name: proxy-{{ _memcache_cluster_full_name }}
+        name: {{ _twempoxy_cluster_full_name }}
         labels:
           app.kubernetes.io/managed-by: "flightdeck-operator"
           app.kubernetes.io/created-by: "controller-manager"
           app.kubernetes.io/name: "twemproxy"
           app.kubernetes.io/instance: "{{ ansible_operator_meta.name }}"
-          app.kubernetes.io/part-of: "{{ _memcache_cluster_full_name }}"
-          flightdeck.ten7.io/memcachecluster: "{{ ansible_operator_meta.name }}"
+          app.kubernetes.io/part-of: "{{ _twempoxy_cluster_full_name }}"
+          flightdeck.ten7.io/twemproxycluster: "{{ ansible_operator_meta.name }}"
       spec:
         selector:
           matchLabels:
-            app.kubernetes.io/name: "MemcacheCluster"
+            app.kubernetes.io/name: "TwempoxyCluster"
             app.kubernetes.io/component: "twemproxy"
-            flightdeck.ten7.io/memcachecluster: "{{ ansible_operator_meta.name }}"
-        serviceName: {{ _memcache_cluster_full_name }}
+            flightdeck.ten7.io/twempoxycluster: "{{ ansible_operator_meta.name }}"
+        serviceName: {{ service.name | default(_twempoxy_cluster_full_name) }}
         template:
           metadata:
             labels:
-              app.kubernetes.io/name: "MemcacheCluster"
+              app.kubernetes.io/name: "TwempoxyCluster"
               app.kubernetes.io/component: "twemproxy"
-              flightdeck.ten7.io/memcachecluster: "{{ ansible_operator_meta.name }}"
+              flightdeck.ten7.io/twempoxycluster: "{{ ansible_operator_meta.name }}"
           spec:
             containers:
               - name: "twemproxy"
                 image: {{ image | default('ten7/flightdeck-twemproxy-0.4') }}
                 imagePullPolicy: Always
-      {% if _flightdeck_t7_io_memcachecluster_spec.twemproxy.resources is defined %}
+      {% if _flightdeck_t7_io_twemproxy_spec.resources is defined %}
                 resources:
-                  {{ _flightdeck_t7_io_memcachecluster_spec.twemproxy.resources | to_nice_yaml(indent=2) | indent(12) }}
+                  {{ _flightdeck_t7_io_twemproxy_spec.resources | to_nice_yaml(indent=2) | indent(12) }}
       {% endif %}
                 env:
       {% if flightdeck_debug | default(false) %}
@@ -46,7 +46,7 @@
                     value: "1"
       {% endif %}
                 ports:
-                  - containerPort: {{ proxy_port | default('11211') }}
+                  - containerPort: {{ service.port | default('11211') }}
                     name: twemproxy
                     protocol: TCP
                 volumeMounts:
@@ -55,7 +55,7 @@
             volumes:
               - name: "twemproxy-config"
                 configMap:
-                  name: proxy-{{ _memcache_cluster_full_name }}
+                  name: {{ _twempoxy_cluster_full_name }}
     namespace: "{{ ansible_operator_meta.namespace }}"
     wait: true
     wait_timeout: 120

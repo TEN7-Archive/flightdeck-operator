@@ -98,4 +98,11 @@
   finalizer:
     name: flightdeck.t7.io/solruser-finalizer
     role: solruser_finalizer
+- version: v1
+  group: flightdeck.t7.io
+  kind: TwemproxyCluster
+  role: twemproxycluster
+  finalizer:
+    name: flightdeck.t7.io/twemproxy-finalizer
+    role: twemproxycluster_finalizer
 # +kubebuilder:scaffold:watch

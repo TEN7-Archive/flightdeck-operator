@@ -1,51 +1,11 @@
 ---
-- name: Create twemproxy configmap
-  k8s:
-    definition: |
-      apiVersion: v1
-      kind: ConfigMap
-      metadata:
-        name: proxy-{{ _memcache_cluster_full_name }}
-        labels:
-          app.kubernetes.io/managed-by: "flightdeck-operator"
-          app.kubernetes.io/created-by: "controller-manager"
-          app.kubernetes.io/name: "MemcacheCluster"
-          app.kubernetes.io/instance: "{{ ansible_operator_meta.name }}"
-          app.kubernetes.io/part-of: "{{ _memcache_cluster_full_name }}"
-          flightdeck.ten7.io/memcachecluster: "{{ ansible_operator_meta.name }}"
-      data:
-        flightdeck-twemproxy.yml: |
-          flightdeck_twemproxy:
-      {% if flightdeck_debug | default(false) %}
-            flightdeck_debug: yes
-      {% endif %}
-            confFile: "/config/twemproxy/twemproxy.yml"
-            statsInterval: "30000"
-            mbufSize: "16384"
-            statsPort: "22222"
-        twemproxy.yml: |
-          default:
-            listen: 0.0.0.0:{{ proxy_port | default('11211') }}
-            hash: fnv1a_64
-            distribution: ketama
-            timeout: 400
-            backlog: 1024
-            preconnect: true
-            auto_eject_hosts: true
-            server_retry_timeout: 30000
-            server_failure_limit: 30
-            servers:
-      {% for i in range(replicas | default(3)) %}
-              - cache-{{ _memcache_cluster_full_name }}-{{ i }}.cache-{{ _memcache_cluster_full_name }}:{{ cache_port | default('11211') }}:1
-      {% endfor %}
-    namespace: "{{ ansible_operator_meta.namespace }}"
 - name: Create memcache configmap
   k8s:
     definition: |
       apiVersion: v1
       kind: ConfigMap
       metadata:
-        name: cache-{{ _memcache_cluster_full_name }}
+        name: {{ _memcache_cluster_full_name }}
         labels:
           app.kubernetes.io/managed-by: "flightdeck-operator"
           app.kubernetes.io/created-by: "controller-manager"
@@ -55,7 +15,7 @@
       {% if flightdeck_debug | default(false) %}
             flightdeck_debug: yes
       {% endif %}
-            port: "{{ cache_port | default('11211') }}"
+            port: "{{ service.port | default('11211') }}"
             memory: "{{ memory | default('256') }}"
             threads: "{{ threads | default('4') }}"
     namespace: "{{ ansible_operator_meta.namespace }}"

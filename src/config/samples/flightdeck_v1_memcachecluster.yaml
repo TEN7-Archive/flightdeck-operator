@@ -16,3 +16,6 @@ spec:
                operator: In
                values:
                  - linux
+  service:
+    name: 'memcache'
+    port: 11211

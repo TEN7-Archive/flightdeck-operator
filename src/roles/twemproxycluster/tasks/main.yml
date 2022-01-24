@@ -1,0 +1,24 @@
+---
+- name: Generate the cluster name
+  set_fact:
+    _twempoxy_cluster_full_name: "{{ fullname_override | default(ansible_operator_meta.name + '-twemproxy') }}"
+
+- name: Work with configmaps
+  include_tasks: 'configmaps.yml'
+- name: Work with daemonsets
+  include_tasks: 'daemonsets.yml'
+- name: Work with services
+  include_tasks: 'services.yml'
+
+- name: Update the CRD status
+  operator_sdk.util.k8s_status:
+    api_version: flightdeck.t7.io/v1
+    kind: TwemproxyCluster
+    name: "{{ ansible_operator_meta.name }}"
+    namespace: "{{ ansible_operator_meta.namespace }}"
+    status:
+      flightdeckOperator:
+        firstRun: true
+        status: true
+        deleting: false
+        message: "TwempoxyCluster {{ ansible_operator_meta.name }} ready."

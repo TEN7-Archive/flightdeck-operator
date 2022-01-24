@@ -5,7 +5,7 @@
       apiVersion: v1
       kind: Service
       metadata:
-        name: {{ _zookeeper_cluster_full_name }}
+        name: {{ service.name | default(_zookeeper_cluster_full_name) }}
         labels:
           app.kubernetes.io/managed-by: "flightdeck-operator"
           app.kubernetes.io/created-by: "controller-manager"
@@ -17,13 +17,13 @@
       spec:
         ports:
           - name: "zookeeper-client"
-            port: {{ zookeeper_client_port | default('2181') }}
+            port: {{ service.client_port | default('2181') }}
             protocol: TCP
           - name: "zookeeper-quorum"
-            port: {{ quorum_port | default('2888') }}
+            port: {{ service.quorum_port | default('2888') }}
             protocol: TCP
           - name: "zookeeper-leader"
-            port: {{ leader_port | default('3888') }}
+            port: {{ service.leader_port | default('3888') }}
             protocol: TCP
         selector:
           app.kubernetes.io/name: "ZookeeperCluster"

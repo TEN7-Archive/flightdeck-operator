@@ -95,4 +95,11 @@ resources:
   group: flightdeck
   kind: SolrUser
   version: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: t7.io
+  group: flightdeck
+  kind: TwemproxyCluster
+  version: v1
 version: "3"

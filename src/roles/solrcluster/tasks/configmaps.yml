@@ -16,12 +16,12 @@
       {% if flightdeck_debug | default(false) %}
             flightdeck_debug: yes
       {% endif %}
-            port: "{{ port | default('8983') }}"
+            port: "{{ service.port | default('8983') }}"
             cloud:
               state: yes
               zookeepers:
       {% for i in range(_zkcluster_def.spec.replicas) %}
                 - url: "{{ _zookeeper_cluster_full_name }}-{{ i }}.{{ _zookeeper_cluster_full_name }}.{{ _zookeeper_cluster_namespace }}.svc.cluster.local"
-                  port: "{{ _zkcluster_def.spec.port | default('2181') }}"
+                  port: "{{ _zkcluster_def.spec.service.clientPort | default('2181') }}"
       {% endfor %}
     namespace: "{{ ansible_operator_meta.namespace }}"

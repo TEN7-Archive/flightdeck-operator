@@ -1,0 +1,27 @@
+---
+- name: Create the twemproxy service
+  k8s:
+    definition: |
+      ---
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: {{ twemproxy.name | default(_twempoxy_cluster_full_name) }}
+        labels:
+          app.kubernetes.io/managed-by: "flightdeck-operator"
+          app.kubernetes.io/created-by: "controller-manager"
+          app.kubernetes.io/name: "TwempoxyCluster"
+          app.kubernetes.io/component: "twemproxy"
+          app.kubernetes.io/instance: "{{ ansible_operator_meta.name }}"
+          app.kubernetes.io/part-of: "{{ _twempoxy_cluster_full_name }}"
+          flightdeck.ten7.io/twempoxycluster: "{{ ansible_operator_meta.name }}"
+      spec:
+        ports:
+          - name: twemproxy
+            port: {{ twemproxy.port | default('11211') }}
+            protocol: TCP
+        selector:
+          app.kubernetes.io/name: "TwempoxyCluster"
+          app.kubernetes.io/component: "twemproxy"
+          flightdeck.ten7.io/twemproxycluster: "{{ ansible_operator_meta.name }}"
+    namespace: "{{ ansible_operator_meta.namespace }}"

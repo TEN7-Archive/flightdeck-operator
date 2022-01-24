@@ -1,0 +1,45 @@
+---
+- name: Create twemproxy configmap
+  k8s:
+    definition: |
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: {{ _twempoxy_cluster_full_name }}
+        labels:
+          app.kubernetes.io/managed-by: "flightdeck-operator"
+          app.kubernetes.io/created-by: "controller-manager"
+          app.kubernetes.io/name: "TwemproxyCluster"
+          app.kubernetes.io/instance: "{{ ansible_operator_meta.name }}"
+          app.kubernetes.io/part-of: "{{ _twempoxy_cluster_full_name }}"
+          flightdeck.ten7.io/twemproxycluster: "{{ ansible_operator_meta.name }}"
+      data:
+        flightdeck-twemproxy.yml: |
+          flightdeck_twemproxy:
+      {% if flightdeck_debug | default(false) %}
+            flightdeck_debug: yes
+      {% endif %}
+            confFile: "/config/twemproxy/twemproxy.yml"
+            statsInterval: "30000"
+            mbufSize: "16384"
+            statsPort: "{{ service.statsPort | default('22222') }}"
+        twemproxy.yml: |
+      {% for _pool in pools | default([]) %}
+          {{ _pool.name }}:
+            listen: 0.0.0.0:{{ _pool.port | default('11211') }}
+            hash: {{ _pool.hash | default('fnv1a_64') }}
+            distribution: {{ _pool.distribution | default('ketama') }}
+            timeout: {{ _pool.timeout | default('400') }}
+            backlog: {{ _pool.backlog | default('1024') }}
+            preconnect: {{ _pool.preconnect | default(true) | ternary('true', 'false') }}
+            auto_eject_hosts: {{ _pool.auto_eject_hosts | default(true) | ternary('true', 'false') }}
+            server_retry_timeout: {{ _pool.server_retry_timeout | default('30000') }}
+            server_failure_limit: {{ _pool.server_failure_limit | default('30') }}
+      {% if _pool.servers | default([]) | length > 0 %}
+            servers:
+      {% for _server in _pool.servers %}
+              - {{ _server }}
+      {% endfor %}
+      {% endif %}
+      {% endfor %}
+    namespace: "{{ ansible_operator_meta.namespace }}"

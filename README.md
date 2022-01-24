@@ -18,6 +18,183 @@ helm repo add flightdeck https://ten7.github.io/flightdeck-operator/
 helm install flightdeck-operator-system flightdeck/flightdeck-operator
 ```
 
+## Use
+
+You interact with Flightdeck Operator primarily through Custom Resource Defintions (CRDs). These are like normal Kubernetes (k8s) definitions for Deployments, Statefulsets, and Services, but represent higher order infrastructure managed by the operator.
+
+Typically, you write the CRD you wish to create as a file:
+
+```yaml
+apiVersion: flightdeck.t7.io/v1
+kind: MySQLCluster
+metadata:
+  name: mysqlcluster-sample
+spec:
+  replicas: 3
+```
+
+Then, apply it using `kubectl`:
+
+```shell
+kubectl apply -f path/to/my/crd.yml
+```
+
+The operator will then deploy all the needed containers, secrets, configmaps, and so on necessary to support the infrastructure you described.
+
+### Common CRD configurations
+
+While the YAML for each CRD is different, there are a few pieces of configuration which work the same no matter what.
+
+#### Replica count
+
+Many applications provided by the operator are configured to run with multiple instances at the same time, or multiple *replicas*. You can specify how many using the `replicas` key:
+
+```yaml
+apiVersion: flightdeck.t7.io/v1
+kind: MySQLCluster
+metadata:
+  name: mysqlcluster-sample
+spec:
+  replicas: 3
+```
+
+* **replicas** is the total number of containers to create.
+
+#### fullnameOverride
+
+By default, many k8s defintions created to support a CRD will have the following name pattern:
+
+*crdName*-*crdType*
+
+Where:
+
+* **crdName** is the name of the CRD.
+* **crdType** is the `kind` of the CRD, but all lowercase.
+
+For example, a `MySQLCluster` CRD named `fdo` will result in a `StatefulSet` named `fdo-mysqlcluster`. For some complex infrastructure, the name is also prefixed with a component name.
+
+The reason for this naming convention is to allow for multiple instances of the same type to live in the same cluster, and even the same namespace.
+
+The `fullnameOverride` item overrides the normal name generation process and allows you to specify the complete name instead:
+
+```yaml
+apiVersion: flightdeck.t7.io/v1
+kind: MySQLCluster
+metadata:
+  name: mysqlcluster-sample
+spec:
+  fullnameOverride: myCluster
+  replicas: 3
+```
+
+#### Service name and port
+
+Often, you only want to customize the `Service` definition name and port required to support the CRD. You can do this with the `service` key:
+
+```yaml
+apiVersion: flightdeck.t7.io/v1
+kind: MySQLCluster
+metadata:
+  name: mysqlcluster-sample
+spec:
+  replicas: 3
+  service:
+    name: mysql
+    port: 3306
+```
+
+Where:
+
+* **name** is the literal name of the service definition to create. Optional, defaults to the above naming convention.
+* **port** is the primary port by which to access the application. Optional, defaults to whatever the application's commonly known port is (3306 for MySQL, 8983 for Solr, etc.).
+
+#### Persistence
+
+Many application supported by this operator work best when pair with persistent storage. Otherwise, when a container is destroyed, so is the data. You can configure persistence with the `persistence` key:
+
+```yaml
+apiVersion: flightdeck.t7.io/v1
+kind: MySQLCluster
+metadata:
+  name: mysqlcluster-sample
+spec:
+  persistence:
+    enabled: true
+    name: "mysql-data"
+    existingClaim: "my-mysql-pvc"
+    size: 20Gi
+    accessModes:
+      - ReadWriteOnce
+    storageClass: "rook-ceph"
+    path: "/path/to/my/files"
+```
+
+Where:
+* **enabled** specifies if persistent storage is enabled (`true`), or disabled (`false`). Optional, defaults to `false`.
+* **name** is the name of the PersistentVolumeClaim (PVC) to use when allocating storage. Optional, defaults to the value of `fullnameOverride`. Ignored when using `existingClaim`.
+* **existingClaim** is the name of an existing PersistentVolumeClaim (PVC) in the same namespace as the CRD. Optional.
+* **size** is the size of the persistent storage to allocate. Required when `enabled` is `true`, and not using `existingClaim`.
+* **accessModes** is a list of access modes by which to mount the persistent storage. Optional, defaults to `ReadWriteOnce`.
+* **storageClass** is the storage class to use to allocate persistent storage. Optional.
+* **path** is the path inside the container to mount the PVC. Optional.
+
+#### Controlling container placement
+
+You can control where the containers necessary to support the application are placed in the cluster using the `nodeSelector` and/or `affinity` keys:
+
+```yaml
+apiVersion: flightdeck.t7.io/v1
+kind: MySQLCluster
+metadata:
+  name: mysqlcluster-sample
+spec:
+  nodeSelector:
+    doks.digitalocean.com/node-pool: my-node-pool
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+              - key: flightdeck.ten7.io/phpapplication
+                operator: In
+                values:
+                  - drupal
+          topologyKey: kubernetes.io/hostname
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: kubernetes.io/os
+            operator: In
+            values:
+              - linux
+```
+Where:
+
+* **nodeSelector** specifies a node selector by which to place containers. Optional.
+* **affinity** is a Kubernetes affinity statement by which to place containers. Optional.
+
+#### Controlling resource allocation
+
+By default, all containers for the application are run without any requests or limits as to memory and CPU resources. You define those requests and limits using the `resources` key:
+
+```yaml
+apiVersion: flightdeck.t7.io/v1
+kind: MySQLCluster
+metadata:
+  name: mysqlcluster-sample
+spec:
+  resources:
+    requests:
+      memory: "1024Mi"
+      cpu: "250m"
+    limits:
+      memory: "2048Mi"
+      cpu: "1000m"
+```
+
+See the [Kubernetes documentation on resources](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) for a complete description of use.
+
 ## Managing MySQL
 
 The Flightdeck Operator provides three CRDs to work with MySQL:
@@ -42,109 +219,19 @@ spec:
 
 Where:
 
-* **fullnameOverride** is the full name override to use when naming cluster containers and services. Optional, defaults to `mysqlcluster-` followed by the name of the `MySQLCluster` definiton.
-* **replicas** is the total number of MySQL containers to create. The first of which will act as the writer/master, and all following contianers will be configured as a reader/replica.
 * **mysql_admin_secret** is the name of the secret to use to store the MySQL root password. Optional, defaults to the value of `fullnameOverride` followed by -root.
 * **mysql_readers_secret** is the name of the secret to use to store Flightdeck Operator user credentials. Optional, defaults to the value of `fullnameOverride` followed by -operator.
 * **mysql_readers_secret** is the name of the secret to use to store replication user credentials. Optional, defaults to the value of `fullnameOverride` followed by -reader.
-* **nodeSelector** specifies a node selector by which to place containers. Must have both a `key` and a `value`. Optional.
-* **affinity** is a Kubernetes affinity statement by which to place containers. Optional.
 
 Note, if the secrets do not exist, they will be created and populated with a randomly generated password.
 
-### Persistency
+When multiple replicas are used, the first replica is set up as the writer, while all remaining replicas are readers.
 
-To ensure that your databases are preserved if a container is deleted or replaced, use the `persistence` key:
+### Persistency and MySQL
 
-```yaml
-apiVersion: flightdeck.t7.io/v1
-kind: MySQLCluster
-metadata:
-  name: mysqlcluster-sample
-  namespace: my-database-namespace
-spec:
-  persistence:
-    enabled: true
-    name: "mysql-data"
-    existingClaim: "my-mysql-pvc"
-    size: 20Gi
-    accessModes:
-      - ReadWriteOnce
-    storageClass: "rook-ceph"
-```
-
-Where:
-* **enabled** specifies if persistent storage is enabled (`true`), or disabled (`false`). Optional, defaults to `false`.
-* **name** is the name of the PersistentVolumeClaim (PVC) to use when allocating storage. Optional, defaults to the value of `fullnameOverride`. Ignored when using `existingClaim`.
-* **existingClaim** is the name of an existing PersistentVolumeClaim (PVC) in the same namespace as the `MySQLCluster` definition. Optional.
-* **size** is the size of the persistent storage to allocate for each MySQL replica. Required when `enabled` is `true`, and not using `existingClaim`.
-* **accessModes** is a list of access modes by which to mount the persistent storage. Optional, defaults to `ReadWriteOnce`.
-* **storageClass** is the storage class to use to allocate persistent storage. Optional.
+To ensure that your databases are preserved if a container is deleted or replaced, use the `persistence` as described in the *Common CRD Configurations* section.
 
 Note that replication may not function when using an existing claim or an `accessMode` of `ReadWriteMany`.
-
-### Controlling container placement
-
-You can control where in your cluster the MySQL containers are placed using the `nodeSelector` and/or `affinity` keys:
-
-```yaml
-apiVersion: flightdeck.t7.io/v1
-kind: MySQLCluster
-metadata:
-  name: mysqlcluster-sample
-  namespace: my-database-namespace
-spec:
-  nodeSelector:
-    key: doks.digitalocean.com/node-pool
-    value: web-pool
-  affinity:
-    podAntiAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        - labelSelector:
-            matchExpressions:
-              - key: flightdeck.ten7.io/phpapplication
-                operator: In
-                values:
-                  - drupal
-          topologyKey: kubernetes.io/hostname
-    nodeAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        nodeSelectorTerms:
-        - matchExpressions:
-          - key: kubernetes.io/os
-            operator: In
-            values:
-              - linux
-```
-Where:
-
-* **nodeSelector** specifies a node selector by which to place containers. Must have both a `key` and a `value`. Optional.
-* **affinity** is a Kubernetes affinity statement by which to place containers. Optional.
-
-### Controlling resource allocation
-
-By default, all containers for the MySQL cluster are run without any requests or limits as to memory and CPU resources. You define those requests and limits using the `resources` key:
-
-```yaml
-apiVersion: flightdeck.t7.io/v1
-kind: MySQLCluster
-metadata:
-  name: mysqlcluster-sample
-  namespace: my-database-namespace
-spec:
-  nodeSelector:
-    key: doks.digitalocean.com/node-pool
-    value: web-pool
-  resources:
-    requests:
-      memory: "1024Mi"
-      cpu: "250m"
-    limits:
-      memory: "2048Mi"
-      cpu: "1000m"
-```
-
-See the [Kubernetes documentation on resources](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) for a complete description of use.
 
 ### Defining MySQL databases
 
@@ -231,44 +318,10 @@ spec:
 
 Where:
 
-* **fullnameOverride** is the full name override to use when naming PHP application containers and services. Optional, defaults to `phpapp-` followed by the name of the `PhpApplication` definiton.
-* **replicas** is the number of replicas to run the application. Optional, defaults to 1.
-* **image** is the container image to use. Optional, defaults to `ten7/flightdeck-web-7.4`. It is highly recommended you override this to your custom container!
+* **image** is the container image to use. Optional, defaults to `ten7/flightdeck-web-8.0`. It is highly recommended you override this to your custom container!
 * **mysqlDatabases** is a list of `MySQLDatabase` definitions utilized by this application. Optional.
 * **mysqlUsers** is a list of `MySQLUser` definitions utilized by this application. Optional.
 * **docroot** is the path to the docroot of the application. Optional, defaults to `/var/www/html` inside the `image` container.
-
-
-### Persistency
-
-If your application requires persistent file storage, you can use the `persistence` key:
-
-```yaml
-apiVersion: flightdeck.t7.io/v1
-kind: PhpApplication
-metadata:
-  name: my-php-app
-  namespace: example-com
-spec:
-  persistence:
-    enabled: true
-    name: "muffy-live-files"
-    existingClaim: "my-php-pvc"
-    size: "5Gi"
-    accessModes:
-      - "ReadWriteOnce"
-    storageClass: "rook-ceph"
-    path: "/var/www/files"
-```
-
-Where:
-* **enabled** specifies if persistent storage is enabled (`true`), or disabled (`false`). Optional, defaults to `false`.
-* **name** is the name of the PersistentVolumeClaim (PVC) to use when allocating storage. Optional, defaults to the value of `fullnameOverride`. Ignored when using `existingClaim`.
-* **existingClaim** is the name of an existing PersistentVolumeClaim (PVC) in the same namespace as the `PhpApplication` definition. Optional.
-* **size** is the size of the persistent storage to allocate for the PHP application. Required when `enabled` is `true`, and not using `existingClaim`.
-* **accessModes** is a list of access modes by which to mount the persistent storage. Optional, defaults to `ReadWriteOnce`.
-* **storageClass** is the storage class to use to allocate persistent storage. Optional.
-* **path** is the path inside the container to mount the PVC. Optional, defaults to `/var/www/files`.
 
 ### Hostnames
 
@@ -321,45 +374,6 @@ Where:
 
 Environment variables are set both for the command line and in the web server.
 
-### Controlling container placement
-
-You can control where in your cluster the PHP application containers are placed using the `nodeSelector` and/or `affinity` keys:
-
-```yaml
-apiVersion: flightdeck.t7.io/v1
-kind: PhpApplication
-metadata:
-  name: my-php-app
-  namespace: example-com
-spec:
-  nodeSelector:
-    key: doks.digitalocean.com/node-pool
-    value: web-pool
-  affinity:
-    podAntiAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        - labelSelector:
-            matchExpressions:
-              - key: flightdeck.ten7.io/phpapplication
-                operator: In
-                values:
-                  - drupal
-          topologyKey: kubernetes.io/hostname
-    nodeAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        nodeSelectorTerms:
-        - matchExpressions:
-          - key: doks.digitalocean.com/node-pool
-            operator: In
-            values:
-            - web-pool
-```
-
-Where:
-
-* **nodeSelector** specifies a node selector by which to place containers. Must have both a `key` and a `value`. Optional.
-* **affinity** is a Kubernetes affinity statement by which to place containers. Optional.
-
 ### Configuring PHP
 
 To configure the PHP engine itself, you can use the `php` key:
@@ -376,7 +390,7 @@ spec:
     post_max_size: "128M"
 ```
 
-See the [flightdeck-web-7.4](https://github.com/ten7/flightdeck-web-7.4#configuring-php) documentation for full options.
+See the [flightdeck-web-8.0](https://github.com/ten7/flightdeck-web-8.0#configuring-php) documentation for full options.
 
 ### Configuring Varnish
 
@@ -444,38 +458,6 @@ Where:
 * **postDeploy** is a shell script to execute when the deployment is complete.
 
 Due to a design limitation of the operator, the above scripts are run twice.
-
-### Controlling resource allocation
-
-Each pod which supports a PHP application is made of two containers, one which provides a web server and PHP ("web") and a varnish container. The primary configuration which controls memory allocation for each is `spec.php.php.memory_limit` for web, and `spec.varnish.memSize` for varnish.
-
-You may wish to impose additional restrictions on the application such that Kubernetes can better schedule and monitor the application. You can do this with the `resources` key for web, and the `varnish.resources` key for varnish:
-
-```yaml
-apiVersion: flightdeck.t7.io/v1
-kind: PhpApplication
-metadata:
-  name: my-php-app
-  namespace: example-com
-spec:
-  resources:
-    requests:
-      memory: "320Mi"
-      cpu: "120m"
-    limits:
-      memory: "700Mi"
-      cpu: "500m"
-  varnish:
-    resources:
-      requests:
-        memory: "64Mi"
-        cpu: "50m"
-      limits:
-        memory: "100Mi"
-        cpu: "250m"
-```
-
-See the [Kubernetes documentation on resources](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) for a complete description of use.
 
 ## Background tasks for PHP Applications
 
@@ -686,45 +668,52 @@ spec:
 
 Where:
 
-* **fullnameOverride** is the full name override to use when naming PHP application containers and services. Optional, defaults to `memcachecluster-` followed by the name of the `MemcacheCluster` definition.
-* **replicas** is the number of Memcache instances to create in the cluster. Optional, defaults to `3`. Note, this does not affect the number of load balancing pods (twemproxy).
 * **memory** is the size in megabytes to use a cache. Optional, defaults to `256`.
 * **threads** is the number of threads to use for each memcache instance. Optional, defaults to `4`.
-* **nodeSelector** specifies a node selector by which to place containers. Must have both a `key` and a `value`. Optional.
-* **affinity** is a Kubernetes affinity statement by which to place containers. Optional.
 
+## Memecache replication and sharding
 
-### Controlling resource allocation
+The MemcacheCluster doesn't provide any sort of replication or sharding by itself. Most memcache applications can accept multiple memcache server URLs and load balance internally. This, however, can dramatically increase the required network connections in your cluster, as each applicaiton container needs to connect to n memcache containers.
 
-Memcache clusters are composed of a statefulset of memcache containers, and a daemonset of twemproxy load balancers. The `spec.memory` key defines how much memory to use for caching.
-
-You may wish to impose additional restrictions on the memcache cluster such that Kubernetes can better schedule and monitor the application. You can do this with the `resources` key for the memcache statefulset, and the `twemproxy.resources` key for twemproxy load balancer daemonset:
+To reduce this load, this operator provides the ability to spin up a `TwemproxyCluster`:
 
 ```yaml
 apiVersion: flightdeck.t7.io/v1
-kind: MemcacheCluster
+kind: TwemproxyCluster
 metadata:
-  name: fdo
-  namespace: flightdeck-operator-system
+  name: twemproxycluster-sample
 spec:
-  resources:
-    requests:
-      memory: "100Mi"
-      cpu: "50m"
-    limits:
-      memory: "200Mi"
-      cpu: "200m"
-  twemproxy:
-    resources:
-      requests:
-        memory: "64Mi"
-        cpu: "50m"
-      limits:
-        memory: "100Mi"
-        cpu: "250m"
+  pools:
+    - name: default
+      port: 11211
+      hash: fnv1a_64
+      distribution: ketama
+      timeout: 400
+      backlog: 1024
+      preconnect: true
+      auto_eject_hosts: true
+      server_retry_timeout: 30000
+      server_failure_limit: 30
+      servers:
+        - cc04-memcachecluster-0.cc04-memcachecluster:11211:1
+        - cc04-memcachecluster-1.cc04-memcachecluster:11211:1
+        - cc04-memcachecluster-2.cc04-memcachecluster:11211:1
 ```
 
-See the [Kubernetes documentation on resources](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) for a complete description of use.
+Where **pools** specifies the [pools as described in twemproxy.yml](https://github.com/twitter/twemproxy), with two exceptions:
+
+* **name** is the name of the pool.
+* **port** is the port on which to accept incoming traffic. Due to the nature of this deployment, the `listen` directive is not available.
+
+Note, the `server` list must specify the internal domain names for the underlying key/value stores. This is either...
+
+*podName*.*serviceName*:*port*:1
+
+...for instances in the same namepace, or...
+
+*podName*.*serviceName*.*namespaceName*.svc.cluster.local:*port*:1
+
+...for instances in another namespace.
 
 ## Solr search
 
@@ -746,15 +735,6 @@ spec:
     size: "1Gi"
     class: "rook-cephfs"
 ```
-
-Where:
-
-* **fullnameOverride** is the full name override to use when naming PHP application containers and services. Optional, defaults to `-zookeepercluster` followed by the name of the `MemcacheCluster` definition.
-* **replicas** is the number of instances to create in the cluster. Optional, defaults to `3`.
-* **nodeSelector** specifies a node selector by which to place containers. Must have both a `key` and a `value`. Optional.
-* **affinity** is a Kubernetes affinity statement by which to place containers. Optional.
-* **persistence** defines how to store persistent information for the cluster. Optional, but highly recommended.
-
 
 ### Solr Cluster
 
@@ -781,11 +761,6 @@ spec:
 
 Where:
 
-* **fullnameOverride** is the full name override to use when naming PHP application containers and services. Optional, defaults to `-zookeepercluster` followed by the name of the `MemcacheCluster` definition.
-* **replicas** is the number of instances to create in the cluster. Optional, defaults to `3`.
-* **nodeSelector** specifies a node selector by which to place containers. Must have both a `key` and a `value`. Optional.
-* **affinity** is a Kubernetes affinity statement by which to place containers. Optional.
-* **persistence** defines how to store persistent information for the cluster. Optional, but highly recommended.
 * **zookeeperCluster** specifies the `name` and optionally, the `namespace` of the zookeeperCluster to use to support the SolrCluster.
 * **solrAdmin** specifies the `user` name and optionally, a `secret` containing the password to use for the user. If `secret` is not specified, the password is autogenerated.
 

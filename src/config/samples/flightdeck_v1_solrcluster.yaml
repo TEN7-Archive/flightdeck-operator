@@ -10,7 +10,12 @@ spec:
   persistence:
     enabled: true
     size: "5Gi"
-    class: "rook-cephfs"
+    storageClass: "rook-cephfs"
+    accessModes:
+      - "ReadWriteOnce"
   solrAdmin:
     user: solr
     secret: "solr-admin-secret"
+  service:
+    name: 'solr'
+    port: 8987

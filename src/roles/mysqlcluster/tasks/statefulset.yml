@@ -108,13 +108,15 @@
                 flightdeck.ten7.io/mysqlcluster: "{{ ansible_operator_meta.name }}"
             spec:
               accessModes:
-                - {{ access_mode | default('ReadWriteOnce') }}
-      {% if storage_class is defined %}
-              storageClassName: "{{ storage_class }}"
+      {% for _accessMode in persistence.access_modes | default(['ReadWriteOnce']) %}
+                - {{ _accessMode }}
+      {% endfor %}
+      {% if persistence.storage_class is defined %}
+              storageClassName: "{{ persistence.storage_class }}"
       {% endif %}
               resources:
                 requests:
-                  storage: {{ size | default('10Gi') }}
+                  storage: {{ persistence.size | default('10Gi') }}
       {% endif %}
     namespace: "{{ ansible_operator_meta.namespace }}"
     wait: true

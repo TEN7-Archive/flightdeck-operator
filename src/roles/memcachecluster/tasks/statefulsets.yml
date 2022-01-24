@@ -6,7 +6,7 @@
       apiVersion: apps/v1
       kind: StatefulSet
       metadata:
-        name: cache-{{ _memcache_cluster_full_name }}
+        name: {{ _memcache_cluster_full_name }}
         labels:
           app.kubernetes.io/managed-by: "flightdeck-operator"
           app.kubernetes.io/created-by: "controller-manager"
@@ -21,7 +21,7 @@
             app.kubernetes.io/name: "MemcacheCluster"
             app.kubernetes.io/component: "memcache"
             flightdeck.ten7.io/memcachecluster: "{{ ansible_operator_meta.name }}"
-        serviceName: cache-{{ _memcache_cluster_full_name }}
+        serviceName: {{ service.name | default (_memcache_cluster_full_name) }}
         replicas: {{ replicas | default(3) }}
         template:
           metadata:
@@ -56,7 +56,7 @@
                     value: "1"
       {% endif %}
                 ports:
-                  - containerPort: {{ cache_port | default('11211') }}
+                  - containerPort: {{ service.port | default('11211') }}
                     name: memcache
                     protocol: TCP
                 volumeMounts:
@@ -65,7 +65,7 @@
             volumes:
               - name: vol-config-flightdeck-memcache
                 configMap:
-                  name: cache-{{ _memcache_cluster_full_name }}
+                  name: {{ _memcache_cluster_full_name }}
     namespace: "{{ ansible_operator_meta.namespace }}"
     wait: true
     wait_timeout: 120
@@ -75,38 +75,9 @@
   k8s_info:
     api_version: "apps/v1"
     kind: statefulset
-    name: "cache-{{ _memcache_cluster_full_name }}"
+    name: "{{ _memcache_cluster_full_name }}"
     namespace: "{{ ansible_operator_meta.namespace }}"
   register: _statefulset_info
   until: (_statefulset_info.resources[0].status.readyReplicas | default(0)) == (replicas | default(1))
   retries: 5
   delay: 30
-# We create the memcache services right after the statefulset so twemproxy doesn't
-# go intro retry while waiting for the daemonset to spin up.
-- name: Create the memcache service
-  k8s:
-    definition: |
-      ---
-      apiVersion: v1
-      kind: Service
-      metadata:
-        name: cache-{{ _memcache_cluster_full_name }}
-        labels:
-          app.kubernetes.io/managed-by: "flightdeck-operator"
-          app.kubernetes.io/created-by: "controller-manager"
-          app.kubernetes.io/name: "MemcacheCluster"
-          app.kubernetes.io/component: "memcache"
-          app.kubernetes.io/instance: "{{ ansible_operator_meta.name }}"
-          app.kubernetes.io/part-of: "{{ _memcache_cluster_full_name }}"
-          flightdeck.ten7.io/memcachecluster: "{{ ansible_operator_meta.name }}"
-      spec:
-        clusterIP: None
-        ports:
-          - name: memcache
-            port: {{ cache_port | default('11211') }}
-            protocol: TCP
-        selector:
-          app.kubernetes.io/name: "MemcacheCluster"
-          app.kubernetes.io/component: "memcache"
-          flightdeck.ten7.io/memcachecluster: "{{ ansible_operator_meta.name }}"
-    namespace: "{{ ansible_operator_meta.namespace }}"

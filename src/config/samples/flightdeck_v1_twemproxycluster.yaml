@@ -1,0 +1,20 @@
+apiVersion: flightdeck.t7.io/v1
+kind: TwemproxyCluster
+metadata:
+  name: twemproxycluster-sample
+spec:
+  pools:
+    - name: default
+      port: 11211
+      hash: fnv1a_64
+      distribution: ketama
+      timeout: 400
+      backlog: 1024
+      preconnect: true
+      auto_eject_hosts: true
+      server_retry_timeout: 30000
+      server_failure_limit: 30
+      servers:
+        - cc04-memcachecluster-0.cc04-memcachecluster:11211:1
+        - cc04-memcachecluster-1.cc04-memcachecluster:11211:1
+        - cc04-memcachecluster-2.cc04-memcachecluster:11211:1

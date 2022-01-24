@@ -29,7 +29,7 @@ spec:
       value: "live"
   persistence:
     enabled: yes
-    class: "rook-cephfs"
+    storageClass: "rook-cephfs"
     accessModes:
       - "ReadWriteMany"
     size: "5Gi"

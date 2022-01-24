@@ -58,7 +58,7 @@
                     value: "1"
       {% endif %}
                 ports:
-                  - containerPort: {{ port | default('8983') }}
+                  - containerPort: {{ service.port | default('8983') }}
                     name: solr
                     protocol: TCP
                 volumeMounts:

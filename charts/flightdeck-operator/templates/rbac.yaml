@@ -298,6 +298,20 @@ rules:
   - patch
   - update
   - watch
+- apiGroups:
+  - flightdeck.t7.io
+  resources:
+  - twemproxyclusters
+  - twemproxyclusters/status
+  - twemproxyclusters/finalizers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

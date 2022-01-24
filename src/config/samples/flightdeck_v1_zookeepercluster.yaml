@@ -7,7 +7,14 @@ spec:
   persistence:
     enabled: true
     size: "1Gi"
-    class: "rook-cephfs"
+    storageClass: "rook-cephfs"
+    accessModes:
+      - "ReadWriteOnce"
+  service:
+    name: 'zookeeper'
+    clientPort: 2181
+    quorumPort: 2888
+    leaderPort: 3888
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:

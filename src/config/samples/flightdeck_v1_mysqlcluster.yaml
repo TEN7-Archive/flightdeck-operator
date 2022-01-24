@@ -5,8 +5,11 @@ metadata:
   namespace: default
 spec:
   persistence:
-    enabled: yes
-    size: 20Gi
+    enabled: true
+    size: "10Gi"
+    storageClass: "rook-cephfs"
+    accessModes:
+      - "ReadWriteOnce"
   replicas: 3
   affinity:
     nodeAffinity:
@@ -18,3 +21,6 @@ spec:
                values:
                  - linux
   storageClass: "rook-cephfs"
+  service:
+    name: "fdo-mysqlcluster"  # Defaults to the CRD name + '-mysqlcluster'.
+    port: 3306
