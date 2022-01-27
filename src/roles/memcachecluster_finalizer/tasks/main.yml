@@ -7,7 +7,7 @@
   k8s:
     api_version: "v1"
     kind: "Service"
-    name: "cache-{{ _memcache_cluster_full_name }}"
+    name: "{{ service.name | default(_memcache_cluster_full_name) }}"
     namespace: "{{ ansible_operator_meta.namespace }}"
     state: absent
 
@@ -15,7 +15,7 @@
   k8s:
     api_version: "apps/v1"
     kind: "StatefulSet"
-    name: "cache-{{ _memcache_cluster_full_name }}"
+    name: "{{ _memcache_cluster_full_name }}"
     namespace: "{{ ansible_operator_meta.namespace }}"
     state: absent
 
@@ -23,6 +23,6 @@
   k8s:
     api_version: "v1"
     kind: "ConfigMap"
-    name: "cache-{{ _memcache_cluster_full_name }}"
+    name: "{{ _memcache_cluster_full_name }}"
     namespace: "{{ ansible_operator_meta.namespace }}"
     state: absent

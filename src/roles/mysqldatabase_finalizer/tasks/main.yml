@@ -36,4 +36,4 @@
     state: absent
     login_user: "{{ _mysql_operator_user }}"
     login_password: "{{ _mysql_operator_password }}"
-    login_host: "{{_mysql_cluster_full_name }}-0.{{ _mysql_cluster_full_name }}.{{ _cluster_def.metadata.namespace }}.svc.cluster.local"
+    login_host: "{{_mysql_cluster_full_name }}-0.{{ _cluster_def.spec.service.name | default(_mysql_cluster_full_name) }}.{{ _cluster_def.metadata.namespace }}.svc.cluster.local"

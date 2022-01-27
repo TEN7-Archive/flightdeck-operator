@@ -21,7 +21,7 @@
               state: yes
               zookeepers:
       {% for i in range(_zkcluster_def.spec.replicas) %}
-                - url: "{{ _zookeeper_cluster_full_name }}-{{ i }}.{{ _zookeeper_cluster_full_name }}.{{ _zookeeper_cluster_namespace }}.svc.cluster.local"
+                - url: "{{ _zookeeper_cluster_full_name }}-{{ i }}.{{ _zkcluster_def.spec.service.name | default(_zookeeper_cluster_full_name) }}.{{ _zookeeper_cluster_namespace }}.svc.cluster.local"
                   port: "{{ _zkcluster_def.spec.service.clientPort | default('2181') }}"
       {% endfor %}
     namespace: "{{ ansible_operator_meta.namespace }}"

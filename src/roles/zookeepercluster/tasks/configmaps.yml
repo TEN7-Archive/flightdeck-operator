@@ -24,7 +24,7 @@
             myIdFromHostname: true
             servers:
       {% for i in range(replicas | default(3)) %}
-              - host: "{{ _zookeeper_cluster_full_name }}-{{ i }}.{{ _zookeeper_cluster_full_name }}.{{ ansible_operator_meta.namespace }}.svc.cluster.local"
+              - host: "{{ _zookeeper_cluster_full_name }}-{{ i }}.{{ service.name | default(_zookeeper_cluster_full_name) }}.{{ ansible_operator_meta.namespace }}.svc.cluster.local"
                 quorumPort: "{{ quorum_port | default('2888') }}"
                 leaderPort: "{{ leader_port | default('3888') }}"
       {% endfor %}

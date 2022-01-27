@@ -31,7 +31,7 @@
 
 - name: Generate the solr service url
   set_fact:
-    _solr_cluster_url: "http://{{ _solr_cluster_full_name }}.{{ _solrcluster_namespace }}.svc.cluster.local:{{ _solrcluster_def.spec.port | default('8983') }}"
+    _solr_cluster_url: "http://{{ _solrcluster_def.spec.service.name | default(_solr_cluster_full_name) }}.{{ _solrcluster_namespace }}.svc.cluster.local:{{ _solrcluster_def.spec.port | default('8983') }}"
 
 - name: Generate the solr admin secret name
   set_fact:

@@ -20,7 +20,7 @@
   k8s:
     api_version: "v1"
     kind: "Service"
-    name: "{{ _zookeeper_cluster_full_name }}"
+    name: "{{ service.name | default(_zookeeper_cluster_full_name) }}"
     namespace: "{{ ansible_operator_meta.namespace }}"
     state: absent
 
