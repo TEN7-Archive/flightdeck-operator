@@ -20,7 +20,7 @@
             app.kubernetes.io/name: "MySQLCluster"
             app.kubernetes.io/component: "mysql"
             flightdeck.ten7.io/mysqlcluster: "{{ ansible_operator_meta.name }}"
-        serviceName: {{ _mysql_cluster_full_name }}
+        serviceName: {{ service.name | default(_mysql_cluster_full_name) }}
         replicas: {{ replicas | default(1) }}
         template:
           metadata:

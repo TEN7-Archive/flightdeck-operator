@@ -21,7 +21,7 @@
             app.kubernetes.io/name: "SolrCluster"
             app.kubernetes.io/component: "search"
             flightdeck.ten7.io/solrcluster: "{{ ansible_operator_meta.name }}"
-        serviceName: {{ _solr_cluster_full_name }}
+        serviceName: {{ service.name | default(_solr_cluster_full_name) }}
         replicas: {{ replicas | default(3) }}
         template:
           metadata:

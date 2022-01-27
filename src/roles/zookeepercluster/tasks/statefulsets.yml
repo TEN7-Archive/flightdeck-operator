@@ -21,7 +21,7 @@
             app.kubernetes.io/name: "ZookeeperCluster"
             app.kubernetes.io/component: "clustering"
             flightdeck.ten7.io/zookeepercluster: "{{ ansible_operator_meta.name }}"
-        serviceName: {{ _zookeeper_cluster_full_name }}
+        serviceName: {{ service.name | default(_zookeeper_cluster_full_name) }}
         replicas: {{ replicas | default(3) }}
         template:
           metadata:
