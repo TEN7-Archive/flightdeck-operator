@@ -683,6 +683,9 @@ kind: TwemproxyCluster
 metadata:
   name: twemproxycluster-sample
 spec:
+  service:
+    name: twemproxy
+    port: 22222
   pools:
     - name: default
       port: 11211
@@ -705,7 +708,9 @@ Where **pools** specifies the [pools as described in twemproxy.yml](https://gith
 * **name** is the name of the pool.
 * **port** is the port on which to accept incoming traffic. Due to the nature of this deployment, the `listen` directive is not available.
 
-Note, the `server` list must specify the internal domain names for the underlying key/value stores. This is either...
+### Specifying cache instances
+
+The `server` list must specify the internal domain names for the underlying key/value stores. This is either...
 
 *podName*.*serviceName*:*port*:1
 
@@ -714,6 +719,14 @@ Note, the `server` list must specify the internal domain names for the underlyin
 *podName*.*serviceName*.*namespaceName*.svc.cluster.local:*port*:1
 
 ...for instances in another namespace.
+
+### Service definition
+
+While TwempoxyCluster supports the `services` key, the `port` item specifies the Twemproxy statistics port. This is because each pool requires it's own unique port allocation.
+
+### Replicas aren't supported
+
+The `replicas` key has no effect on Twemproxy, as it is set up as a Daemonset, rather than as a Statefulset.
 
 ## Solr search
 

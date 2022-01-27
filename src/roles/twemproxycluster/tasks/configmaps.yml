@@ -22,7 +22,7 @@
             confFile: "/config/twemproxy/twemproxy.yml"
             statsInterval: "30000"
             mbufSize: "16384"
-            statsPort: "{{ service.statsPort | default('22222') }}"
+            statsPort: "{{ service.port | default('22222') }}"
         twemproxy.yml: |
       {% for _pool in pools | default([]) %}
           {{ _pool.name }}:

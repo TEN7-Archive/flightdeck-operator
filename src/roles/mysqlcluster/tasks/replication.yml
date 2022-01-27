@@ -2,8 +2,8 @@
 # Hostnames in mysql can't be more than 60 characters, so we use the namespace local hostnames instead.
 - name: Generate writer and reader hostnames
   set_fact:
-    _reader_hostname: "{{ _mysql_cluster_full_name }}-{{ _reader_delta }}.{{ _mysql_cluster_full_name }}"
-    _writer_hostname: "{{ _mysql_cluster_full_name }}-0.{{ _mysql_cluster_full_name }}"
+    _reader_hostname: "{{ _mysql_cluster_full_name }}-{{ _reader_delta }}.{{ service.name | default(_mysql_cluster_full_name) }}"
+    _writer_hostname: "{{ _mysql_cluster_full_name }}-0.{{ service.name | default(_mysql_cluster_full_name) }}"
 
 - name: Get the reader replication status
   mysql_replication:

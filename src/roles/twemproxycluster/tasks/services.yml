@@ -6,7 +6,7 @@
       apiVersion: v1
       kind: Service
       metadata:
-        name: {{ twemproxy.name | default(_twempoxy_cluster_full_name) }}
+        name: {{ service.name | default(_twempoxy_cluster_full_name) }}
         labels:
           app.kubernetes.io/managed-by: "flightdeck-operator"
           app.kubernetes.io/created-by: "controller-manager"
@@ -16,10 +16,14 @@
           app.kubernetes.io/part-of: "{{ _twempoxy_cluster_full_name }}"
           flightdeck.ten7.io/twempoxycluster: "{{ ansible_operator_meta.name }}"
       spec:
+      {% if pools | default([]) | length > 0 %}
         ports:
-          - name: twemproxy
-            port: {{ twemproxy.port | default('11211') }}
+      {% for _pool in pools | default([]) %}
+          - name: {{ _poolname }}
+            port: {{ _pool.port }}
             protocol: TCP
+      {% endfor %}
+      {% endif %}
         selector:
           app.kubernetes.io/name: "TwempoxyCluster"
           app.kubernetes.io/component: "twemproxy"
