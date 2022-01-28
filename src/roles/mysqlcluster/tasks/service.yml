@@ -15,7 +15,6 @@
           app.kubernetes.io/part-of: "{{ _mysql_cluster_full_name }}"
           flightdeck.ten7.io/mysqlcluster: "{{ ansible_operator_meta.name }}"
       spec:
-        clusterIP: None
         ports:
           - name: mysql
             port: {{ service.port | default('3306') }}
