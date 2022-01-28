@@ -19,7 +19,7 @@
       {% if pools | default([]) | length > 0 %}
         ports:
       {% for _pool in pools | default([]) %}
-          - name: {{ _poolname }}
+          - name: {{ _pool.name }}
             port: {{ _pool.port }}
             protocol: TCP
       {% endfor %}
