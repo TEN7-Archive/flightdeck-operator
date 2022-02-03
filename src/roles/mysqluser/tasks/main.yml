@@ -77,7 +77,7 @@
     password: "{{ _mysql_user_password }}"
     priv: "{% for _item in privileges %}\
            {{ _item.database }}.{{ _item.table | default('*') }}:{{ _item.grant | default('USAGE') }}\
-           {% if not loop.last %},{% endif %}\
+           {% if not loop.last %}/{% endif %}\
            {% endfor %}"
     state: present
     login_user: "{{ _mysql_operator_user }}"
