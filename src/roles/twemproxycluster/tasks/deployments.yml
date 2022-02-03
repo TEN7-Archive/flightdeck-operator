@@ -1,10 +1,10 @@
 ---
-- name: Create twemproxy daemonset
+- name: Create twemproxy deployment
   k8s:
     definition: |
       ---
       apiVersion: apps/v1
-      kind: DaemonSet
+      kind: deployment
       metadata:
         name: {{ _twempoxy_cluster_full_name }}
         labels:
@@ -15,19 +15,44 @@
           app.kubernetes.io/part-of: "{{ _twempoxy_cluster_full_name }}"
           flightdeck.ten7.io/twemproxycluster: "{{ ansible_operator_meta.name }}"
       spec:
+        replicas: {{ replicas | default('1') }}
         selector:
           matchLabels:
-            app.kubernetes.io/name: "TwempoxyCluster"
+            app.kubernetes.io/name: "TwemproxyCluster"
             app.kubernetes.io/component: "twemproxy"
-            flightdeck.ten7.io/twempoxycluster: "{{ ansible_operator_meta.name }}"
-        serviceName: {{ service.name | default(_twempoxy_cluster_full_name) }}
+            flightdeck.ten7.io/twemproxycluster: "{{ ansible_operator_meta.name }}"
+      {% if strategy is defined %}
+        strategy:
+          {{ strategy | to_nice_yaml(indent=2) | indent(4) }}
+      {% else %}
+        strategy:
+          type: RollingUpdate
+          rollingUpdate:
+            maxSurge: 0
+            maxUnavailable: 1
+      {% endif %}
+        minReadySeconds: {{ min_ready_seconds | default(30) }}
         template:
           metadata:
             labels:
-              app.kubernetes.io/name: "TwempoxyCluster"
+              app.kubernetes.io/name: "TwemproxyCluster"
               app.kubernetes.io/component: "twemproxy"
-              flightdeck.ten7.io/twempoxycluster: "{{ ansible_operator_meta.name }}"
+              flightdeck.ten7.io/twemproxycluster: "{{ ansible_operator_meta.name }}"
+      {% if _flightdeck_t7_io_twemproxy_spec.annotations is defined %}
+            annotations:
+      {% for _annotation in annotations | default([]) %}
+              {{ _annotation.key }}: {{ _annotation.value }}
+      {% endfor %}
+      {% endif %}
           spec:
+      {% if node_selector is defined %}
+            nodeSelector:
+              {{ _flightdeck_t7_io_twemproxy_spec.nodeSelector | to_nice_yaml(indent=2) | indent(8) }}
+      {% endif %}
+      {% if (_flightdeck_t7_io_twemproxy_spec is defined) and (_flightdeck_t7_io_twemproxy_spec.affinity is defined )%}
+            affinity:
+              {{ _flightdeck_t7_io_twemproxy_spec.affinity | to_nice_yaml(indent=2) | indent(8) }}
+      {% endif %}
             containers:
               - name: "twemproxy"
                 image: {{ image | default('ten7/flightdeck-twemproxy-0.4') }}
@@ -46,9 +71,11 @@
                     value: "1"
       {% endif %}
                 ports:
-                  - containerPort: {{ service.port | default('11211') }}
-                    name: twemproxy
+      {% for _pool in pools | default([]) %}
+                  - containerPort: {{ _pool.port }}
+                    name: {{ _pool.name }}
                     protocol: TCP
+      {% endfor %}
                 volumeMounts:
                   - name: "twemproxy-config"
                     mountPath: "/config/twemproxy"

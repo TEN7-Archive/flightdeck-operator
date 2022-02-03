@@ -10,11 +10,11 @@
         labels:
           app.kubernetes.io/managed-by: "flightdeck-operator"
           app.kubernetes.io/created-by: "controller-manager"
-          app.kubernetes.io/name: "TwempoxyCluster"
+          app.kubernetes.io/name: "TwemproxyCluster"
           app.kubernetes.io/component: "twemproxy"
           app.kubernetes.io/instance: "{{ ansible_operator_meta.name }}"
           app.kubernetes.io/part-of: "{{ _twempoxy_cluster_full_name }}"
-          flightdeck.ten7.io/twempoxycluster: "{{ ansible_operator_meta.name }}"
+          flightdeck.ten7.io/twemproxycluster: "{{ ansible_operator_meta.name }}"
       spec:
       {% if pools | default([]) | length > 0 %}
         ports:
@@ -25,7 +25,7 @@
       {% endfor %}
       {% endif %}
         selector:
-          app.kubernetes.io/name: "TwempoxyCluster"
+          app.kubernetes.io/name: "TwemproxyCluster"
           app.kubernetes.io/component: "twemproxy"
           flightdeck.ten7.io/twemproxycluster: "{{ ansible_operator_meta.name }}"
     namespace: "{{ ansible_operator_meta.namespace }}"

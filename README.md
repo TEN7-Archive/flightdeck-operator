@@ -724,10 +724,6 @@ The `server` list must specify the internal domain names for the underlying key/
 
 While TwempoxyCluster supports the `services` key, the `port` item specifies the Twemproxy statistics port. This is because each pool requires it's own unique port allocation.
 
-### Replicas aren't supported
-
-The `replicas` key has no effect on Twemproxy, as it is set up as a Daemonset, rather than as a Statefulset.
-
 ## Solr search
 
 Apache Solr is often used by PHP Applications to provide a search function. Instead of single-node Solr instances, you can stand up a multi-tenant Solr Cloud instance using a handful of definitions.

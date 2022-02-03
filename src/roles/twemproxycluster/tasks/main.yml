@@ -5,8 +5,8 @@
 
 - name: Work with configmaps
   include_tasks: 'configmaps.yml'
-- name: Work with daemonsets
-  include_tasks: 'daemonsets.yml'
+- name: Work with deployments
+  include_tasks: 'deployments.yml'
 - name: Work with services
   include_tasks: 'services.yml'
 
@@ -21,4 +21,4 @@
         firstRun: true
         status: true
         deleting: false
-        message: "TwempoxyCluster {{ ansible_operator_meta.name }} ready."
+        message: "TwemproxyCluster {{ ansible_operator_meta.name }} ready."
