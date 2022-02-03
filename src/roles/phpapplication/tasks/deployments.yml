@@ -12,6 +12,7 @@
           app.kubernetes.io/name: "php"
           app.kubernetes.io/instance: "{{ ansible_operator_meta.name }}"
           app.kubernetes.io/part-of: "{{ _phpapp_full_name }}"
+          flightdeck.ten7.io/phpapplication: "{{ ansible_operator_meta.name }}"
       spec:
         replicas: {{ replicas | default('1') }}
         selector:
@@ -38,9 +39,9 @@
               app.kubernetes.io/instance: "{{ ansible_operator_meta.name }}"
               app.kubernetes.io/part-of: "{{ _phpapp_full_name }}"
               flightdeck.ten7.io/phpapplication: "{{ ansible_operator_meta.name }}"
-      {% if flightdeck_cluster.web.annotations is defined %}
+      {% if _flightdeck_t7_io_phpapplication_spec.annotations is defined %}
             annotations:
-      {% for _annotation in annotations | default([]) %}
+      {% for _annotation in _flightdeck_t7_io_phpapplication_spec.annotations | default([]) %}
               {{ _annotation.key }}: {{ _annotation.value }}
       {% endfor %}
       {% endif %}
