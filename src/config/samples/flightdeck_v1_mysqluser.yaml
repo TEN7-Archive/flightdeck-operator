@@ -6,10 +6,11 @@ spec:
   cluster:
     name: fdo
     namespace: default
-  username: "my_user"  
+  username: "my_user"
   host: "%"
   state: present
   privileges:
     - database: "my_database"
       table: "*"
-      grant: "ALL"
+      grants:
+        - "ALL"
