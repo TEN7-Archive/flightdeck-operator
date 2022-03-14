@@ -272,7 +272,8 @@ spec:
   privileges:
     - database: "my_database"
       table: "*"
-      grant: "ALL"
+      grants:
+        - "ALL"
 ```
 
 Where:
@@ -286,7 +287,7 @@ Where:
 The `privileges` key defines the user's privileges:
 * **database** is the database name for the grant.
 * **table** is the table name pattern for the grant.
-* **grant** is a list of permissions, comma delimited.
+* **grants** is a list of permissions.
 
 ## PHP applications
 

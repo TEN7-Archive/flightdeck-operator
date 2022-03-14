@@ -76,10 +76,14 @@
     host: "{{ host | default('%') }}"
     password: "{{ _mysql_user_password }}"
     priv: "{% for _item in privileges %}\
-           {{ _item.database }}.{{ _item.table | default('*') }}:{{ _item.grant | default('USAGE') }}\
+           {{ _item.database }}.{{ _item.table | default('*') }}:\
+           {% if _item.grant is defined %}{{ _item.grant }}\
+           {% elif _item.grants is defined %}{{ _item.grants | join(',') }}\
+           {% else %}USAGE{% endif %}\
            {% if not loop.last %}/{% endif %}\
            {% endfor %}"
     state: present
     login_user: "{{ _mysql_operator_user }}"
     login_password: "{{ _mysql_operator_password }}"
     login_host: "{{_mysql_cluster_full_name }}-0.{{ _cluster_def.spec.service.name | default(_mysql_cluster_full_name) }}.{{ _cluster_def.metadata.namespace }}.svc.cluster.local"
+    append_privs: yes
