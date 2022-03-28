@@ -62,7 +62,7 @@
           spec:
             containers:
               - name: "solr"
-                image: {{ image | default('ten7/flightdeck-solr-8:develop') }}
+                image: {{ image | default('ten7/flightdeck-solr-8') }}
                 command:
                   - /opt/solr/server/scripts/cloud-scripts/zkcli.sh
                 args:
