@@ -30,7 +30,7 @@
 
 - name: Fetch the solr admin secret
   set_fact:
-    _solr_admin_secret_def: "{{ lookup('k8s', kind='secret', namespace=ansible_operator_meta.namespace, resource_name=_solr_admin_secret_name) }}"
+    _solr_admin_secret_def: "{{ lookup('k8s', kind='secret', namespace=_solrcluster_namespace, resource_name=_solr_admin_secret_name) }}"
 
 - fail:
     msg: "Could not find requested secret {{ _solr_admin_secret_name }}"
